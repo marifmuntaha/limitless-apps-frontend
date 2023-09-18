@@ -10,18 +10,32 @@ import {
     PreviewCard,
     ReactDataTable, toastSuccess, UserAvatar
 } from "../../components";
-import {Button, ButtonGroup, DropdownItem, DropdownMenu, DropdownToggle, UncontrolledDropdown} from "reactstrap";
+import {
+    Button,
+    ButtonGroup,
+    DropdownItem,
+    DropdownMenu,
+    DropdownToggle,
+    Spinner,
+    UncontrolledDropdown
+} from "reactstrap";
 import Add from "./Add";
 import {ToastContainer} from "react-toastify";
 import axios from "axios";
 import HandleError from "../auth/handleError";
 import Edit from "./Edit";
-import {findUpper, RandomBG} from "../../utils/Utils";
+import {findUpper} from "../../utils/Utils";
 import {useNavigate} from "react-router-dom";
 
 const Member = () => {
     const [sm, updateSm] = useState(false);
+    const [loading, setLoading] = useState({
+        show: '',
+        delete: ''
+    });
     const [filter, setFilter] = useState('1');
+    const [categoryOption, setCategoryOption] = useState([]);
+    const [categorySelected, setCategorySelected] = useState('');
     const [members, setMembers] = useState([]);
     const [member, setMember] = useState([]);
     const [reload, setReload] = useState(true);
@@ -39,15 +53,15 @@ const Member = () => {
             style: {paddingRight: "20px"},
             cell: (row) => (
                 <div className="user-card mt-2 mb-2">
-                    <UserAvatar theme={RandomBG} text={findUpper(row.name)}></UserAvatar>
+                    <UserAvatar theme={row.background} text={findUpper(row.name)}></UserAvatar>
                     <div className="user-info">
                         <span className="tb-lead">
             {row.name}{" "}
-              <span
-                  className={`dot dot-${
-                      row.status === "Active" ? "success" : row.status === "Pending" ? "warning" : "danger"
-                  } d-md-none ms-1`}
-              ></span>
+                            <span
+                                className={`dot dot-${
+                                    row.status === "Active" ? "success" : row.status === "Pending" ? "warning" : "danger"
+                                } d-md-none ms-1`}
+                            ></span>
           </span>
                         <span>{row.user.email}</span>
                     </div>
@@ -68,7 +82,7 @@ const Member = () => {
         },
         {
             name: "Nomor WA",
-            selector: (row) => row.user.phone,
+            selector: (row) => '+62' + row.user.phone,
             sortable: false,
         },
         {
@@ -95,66 +109,88 @@ const Member = () => {
                     <Button
                         color="outline-warning"
                         onClick={() => handleMemberShow(row.id)}
+                        disabled={row.id === loading.show}
 
                     >
-                        <Icon name="edit"/></Button>
+                        {row.id === loading.show ? <Spinner size="sm" color="warning"/> : <Icon name="edit"/> }
+                    </Button>
                     <Button
                         color="outline-danger"
                         onClick={() => handleMemberDelete(row.id)}
+                        disabled={row.id === loading.delete}
+
                     >
-                        <Icon name="trash"/>
+                        {row.id === loading.delete ? <Spinner size="sm" color="danger"/> : <Icon name="trash"/> }
                     </Button>
                 </ButtonGroup>
             )
         },
     ];
     const handleMemberData = async () => {
-        await axios.get(`${process.env.REACT_APP_API_ENDPOINT}/member`, {
+        await axios.get(`/member`, {
             params: {
-                order: true,
-                status: filter
+                order: "DESC",
+                status: filter,
+                category: categorySelected
             },
-            headers: {
-                Accept: 'application/json',
-                Authorization: 'Bearer ' + localStorage.getItem('token')
-            }
         }).then(resp => {
             setMembers(resp.data.result);
             setReload(false);
         }).catch(error => {
             HandleError(error);
+            setReload(false);
         });
     }
     const handleMemberShow = async (id) => {
-        await axios.get(`${process.env.REACT_APP_API_ENDPOINT}/member/${id}`, {
-            headers: {
-                Accept: 'application/json',
-                Authorization: 'Bearer ' + localStorage.getItem('token')
-            }
-        }).then(resp => {
+        setLoading({
+            show: id,
+            delete: ''
+        })
+        await axios.get(`/member/${id}`).then(resp => {
             setMember(resp.data.result);
             setModal({
                 add: false,
                 edit: true
             });
+            setLoading({
+                show: '',
+                delete: ''
+            })
         }).catch(error => {
             HandleError(error);
+            setLoading({
+                show: '',
+                delete: ''
+            });
         });
     }
     const handleMemberDelete = async (id) => {
-        await axios.delete(`${process.env.REACT_APP_API_ENDPOINT}/member/${id}`, {
-            headers: {
-                Accept: 'application/json',
-                Authorization: 'Bearer ' + localStorage.getItem('token')
-            }
-        }).then(resp => {
+        setLoading({
+            show: '',
+            delete: id
+        });
+        await axios.delete(`/member/${id}`).then(resp => {
             toastSuccess(resp.data.message);
+            setLoading({
+                show: '',
+                delete: ''
+            });
             setReload(true);
         }).catch(error => {
             HandleError(error);
+            setLoading({
+                show: '',
+                delete: ''
+            });
         });
     }
-
+    const handleCategoryOption = async () => {
+        await axios.get('/category').then(resp => setCategoryOption(resp.data.result))
+            .catch(error => HandleError(error));
+    }
+    useEffect(() => {
+        handleCategoryOption().then();
+    }, []);
     useEffect(() => {
         reload &&
         handleMemberData();
@@ -189,6 +225,46 @@ const Member = () => {
                             </Button>
                             <div className="toggle-expand-content" style={{display: sm ? "block" : "none"}}>
                                 <ul className="nk-block-tools g-3">
+                                    <li>
+                                        <UncontrolledDropdown>
+                                            <DropdownToggle tag="a"
+                                                            className="dropdown-toggle btn btn-white btn-dim btn-outline-light">
+                                                <Icon name="filter-alt" className="d-none d-sm-inline"></Icon>
+                                                <span>Grup</span>
+                                                <Icon name="chevron-right" className="dd-indc"></Icon>
+                                            </DropdownToggle>
+                                            <DropdownMenu end>
+                                                <ul className="link-list-opt no-bdr">
+                                                    <li>
+                                                        <DropdownItem
+                                                            tag="a"
+                                                            href="#dropdownitem"
+                                                            onClick={() => {
+                                                                setCategorySelected('');
+                                                                setReload(true);
+                                                            }}
+                                                        >
+                                                            <span>Semua</span>
+                                                        </DropdownItem>
+                                                    </li>
+                                                    {categoryOption.map((category, idx) => (
+                                                        <li key={idx}>
+                                                            <DropdownItem
+                                                                tag="a"
+                                                                href="#dropdownitem"
+                                                                onClick={() => {
+                                                                    setCategorySelected(category.id);
+                                                                    setReload(true);
+                                                                }}
+                                                            >
+                                                                <span>{category.name}</span>
+                                                            </DropdownItem>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </DropdownMenu>
+                                        </UncontrolledDropdown>
+                                    </li>
                                     <li>
                                         <UncontrolledDropdown>
                                             <DropdownToggle tag="a"
@@ -246,7 +322,14 @@ const Member = () => {
                 </BlockBetween>
             </BlockHead>
             <PreviewCard>
-                <ReactDataTable data={members} columns={Columns} pagination className="nk-tb-list" selectableRows/>
+                <ReactDataTable
+                    data={members}
+                    columns={Columns}
+                    pagination
+                    className="nk-tb-list"
+                    selectableRows
+                    onLoad={reload}
+                />
             </PreviewCard>
             <Add open={modal.add} setOpen={setModal} datatable={setReload}/>
             <Edit open={modal.edit} setOpen={setModal} datatable={setReload} member={member}/>

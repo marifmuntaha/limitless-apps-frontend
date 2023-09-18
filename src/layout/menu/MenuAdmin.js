@@ -5,10 +5,19 @@ const menuAdmin = [
         link: "/",
     },
     {
-        icon: "server",
-        text: "Perangkat",
-        active: "false",
-        link: "/perangkat",
+        icon: "archived",
+        text: "Master",
+        active: false,
+        subMenu: [
+            {
+                text: "Rekening",
+                link: "/master/rekening",
+            },
+            {
+                text: "Grup",
+                link: "/master/grup",
+            },
+        ],
     },
     {
         icon: "archived",
@@ -29,35 +38,31 @@ const menuAdmin = [
         link: "/tagihan",
     },
     {
-        icon: "users-fill",
-        text: "Member",
+        icon: "reports",
+        text: "Laporan",
         active: false,
         subMenu: [
             {
-                text: "User List - Default",
-                link: "/user-list-default",
+                text: "Pembayaran",
+                link: "/laporan/pembayaran",
             },
             {
-                text: "User List - Regular",
-                link: "/user-list-regular",
-            },
-            {
-                text: "User List - Compact",
-                link: "/user-list-compact",
-            },
-            {
-                text: "User Details - Regular",
-                link: "/user-details-regular/1",
-            },
-            {
-                text: "User Profile - Regular",
-                link: "/user-profile-regular",
-            },
-            {
-                text: "User Contact - Card",
-                link: "/user-contact-card",
+                text: "Tagihan",
+                link: "/laporan/tagihan",
             },
         ],
+    },
+    {
+        icon: "money",
+        text: "Kas Keuangan",
+        active: "false",
+        link: "/arus-kas",
+    },
+    {
+        icon: "setting-alt",
+        text: "Pengaturan",
+        active: "false",
+        link: "/pengaturan",
     },
 ];
 export default menuAdmin;

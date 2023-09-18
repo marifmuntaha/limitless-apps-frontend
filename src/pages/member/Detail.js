@@ -2,6 +2,9 @@ import React, {useEffect, useState} from "react";
 import {useParams} from "react-router-dom";
 import Content from "../../layout/content";
 import Head from "../../layout/head";
+import HandleError from "../auth/handleError";
+import Order from "../partials/order";
+import Invoice from "../partials/invoice";
 import {Card, Badge} from "reactstrap";
 import {
     Button,
@@ -18,12 +21,9 @@ import {
     UserAvatar,
 } from "../../components";
 import {useNavigate} from "react-router-dom";
-import axios from "axios";
-import HandleError from "../auth/handleError";
-import Order from "./partials/order";
 import {ToastContainer} from "react-toastify";
-import Invoice from "./partials/invoice";
 import {Currency, monthNames, todaysDate} from "../../utils/Utils";
+import axios from "axios";
 
 const Detail = () => {
     const {memberID} = useParams();
@@ -33,14 +33,10 @@ const Detail = () => {
     const [totalInv, setTotalInv] = useState('');
     const navigate = useNavigate();
     const handleMemberData = async () => {
-        await axios.get(`${process.env.REACT_APP_API_ENDPOINT}/member/${memberID}`, {
+        await axios.get(`/member/${memberID}`, {
             params: {
                 invoice: true
             },
-            headers: {
-                Accept: 'application/json',
-                Authorization: 'Bearer ' + localStorage.getItem('token')
-            }
         }).then(resp => {
             setMember(resp.data.result);
             let inv = resp.data.result.invoice || []
@@ -49,9 +45,7 @@ const Detail = () => {
                 return total += invoice.status === '1' && parseInt(invoice.amount);
             })
             setTotalInv(total.toString());
-        }).catch(error => {
-            HandleError(error);
-        });
+        }).catch(error => HandleError(error));
     }
     const toggle = () => {
         setSidebar(!sideBar);
@@ -129,13 +123,15 @@ const Detail = () => {
                                                 <div className="profile-ud-item">
                                                     <div className="profile-ud wider">
                                                         <span className="profile-ud-label">Alamat Email</span>
-                                                        <span className="profile-ud-value">{member.user && member.user.email}</span>
+                                                        <span
+                                                            className="profile-ud-value">{member.user && member.user.email}</span>
                                                     </div>
                                                 </div>
                                                 <div className="profile-ud-item">
                                                     <div className="profile-ud wider">
                                                         <span className="profile-ud-label">Nomor HP</span>
-                                                        <span className="profile-ud-value">{member.user && member.user.phone}</span>
+                                                        <span
+                                                            className="profile-ud-value">{member.user && '+62' + member.user.phone}</span>
                                                     </div>
                                                 </div>
                                                 <div className="profile-ud-item">
@@ -156,13 +152,35 @@ const Detail = () => {
                                                 <div className="profile-ud-item">
                                                     <div className="profile-ud wider">
                                                         <span className="profile-ud-label">Pemasangan</span>
-                                                        <span className="profile-ud-value">{member.installation}</span>
+                                                        <span className="profile-ud-value">
+                                                            {member.register}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div className="profile-ud-item">
+                                                    <div className="profile-ud wider">
+                                                        <span className="profile-ud-label">PPPOE User</span>
+                                                        <span className="profile-ud-value">{member.pppoe_user} </span>
+                                                    </div>
+                                                </div>
+                                                <div className="profile-ud-item">
+                                                    <div className="profile-ud wider">
+                                                        <span className="profile-ud-value">
+                                                            {`(${member.since && member.since['y']} Tahun, ${member.since && member.since['m']} Bulan, ${member.since && member.since['d']} Hari)`}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div className="profile-ud-item">
+                                                    <div className="profile-ud wider">
+                                                        <span className="profile-ud-label">PPPOE Password</span>
+                                                        <span
+                                                            className="profile-ud-value">{member.pppoe_password} </span>
                                                     </div>
                                                 </div>
                                                 <div className="profile-ud-item">
                                                     <div className="profile-ud wider">
                                                         <span className="profile-ud-label">Catatan</span>
-                                                        <span className="profile-ud-value">{member.note}</span>
+                                                        <span className="profile-ud-value">{member.note} </span>
                                                     </div>
                                                 </div>
                                                 <div className="profile-ud-item">
@@ -186,7 +204,8 @@ const Detail = () => {
                                         </Block>
                                         <div className="nk-divider divider md"></div>
                                         <Block>
-                                            <Invoice member={member} reload={reloadInvoice} setReload={setReloadInvoice}/>
+                                            <Invoice member={member} reload={reloadInvoice}
+                                                     setReload={setReloadInvoice}/>
                                         </Block>
                                     </div>
                                 </div>
@@ -195,7 +214,8 @@ const Detail = () => {
                                         <div className="user-card user-card-s2 mt-5 mt-xxl-0">
                                             <UserAvatar className="lg" theme="primary"/>
                                             <div className="user-info">
-                                                <Badge color="outline-light" pill className="ucap">{member.user && member.user.role === '1' ? 'Administrator' : 'Pelanggan'}</Badge>
+                                                <Badge color="outline-light" pill
+                                                       className="ucap">{member.user && member.user.role === '1' ? 'Administrator' : 'Pelanggan'}</Badge>
                                                 <h5>{member.name}</h5>
                                                 <span className="sub-text">{member.user && member.user.email}</span>
                                             </div>
@@ -243,7 +263,8 @@ const Detail = () => {
                                                     <div className="profile-balance-amount">
                                                         <div className="number">BULAN</div>
                                                     </div>
-                                                    <div className="profile-balance-subtitle">{monthNames[todaysDate.getMonth()] + ' ' + todaysDate.getFullYear()}</div>
+                                                    <div
+                                                        className="profile-balance-subtitle">{monthNames[todaysDate.getMonth()] + ' ' + todaysDate.getFullYear()}</div>
                                                 </div>
                                             </div>
                                         </div>
@@ -279,7 +300,7 @@ const Detail = () => {
                     </Block>
                 </Content>
             )}
-            <ToastContainer />
+            <ToastContainer/>
         </>
     );
 };

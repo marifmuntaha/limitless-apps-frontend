@@ -34,7 +34,7 @@ const Login = () => {
     const handleFormSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
-        await axios.post(`${process.env.REACT_APP_API_ENDPOINT}/auth/login`, formData)
+        await axios.post("/auth/login", formData)
             .then(resp => {
                 setLoading(false);
                 localStorage.setItem('token', resp.data.result.token);

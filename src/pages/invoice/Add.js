@@ -5,40 +5,40 @@ import axios from "axios";
 import HandleError from "../auth/handleError";
 import DatePicker from "react-datepicker";
 import {setDateForPicker} from "../../utils/Utils";
+import moment from "moment";
 
-const Add = ({open, setOpen, datatable}) => {
+const Add = ({open, setOpen, datatable, ...params}) => {
+    const member = params.member;
     const [memberOption, setMemberOption] = useState([]);
-    const [due, setDue] = useState(new Date());
+    const [memberSelected, setMemberSelected] = useState([]);
+    const [due, setDue] = useState(moment().toDate());
     const [formData, setFormData] = useState({
         member: '',
         desc: '',
-        amount: '',
-        due: ''
+        price: 0,
+        discount: 0,
+        fees: 0,
+        amount: 0,
+        due: setDateForPicker(moment().toDate())
     });
+    const [price, setPrice] = useState(0);
+    const [discount, setDiscount] = useState(0);
+    const [fees, setFees] = useState(0);
     const handleMemberOption = async () => {
-      await axios.get(`${process.env.REACT_APP_API_ENDPOINT}/member`, {
-          params: {
-              type: 'select'
-          },
-          headers: {
-              Accept: 'application/json',
-              Authorization: 'Bearer ' + localStorage.getItem('token')
-          }
-      }).then(resp => {
-          setMemberOption(resp.data.result);
-      }).catch(error => HandleError(error));
+        await axios.get(`/member`, {
+            params: {
+                type: 'select'
+            }
+        })
+            .then(resp => setMemberOption(resp.data.result))
+            .catch(error => HandleError(error));
     }
     const handleFormInput = (e) => {
         setFormData({...formData, [e.target.name]: e.target.value});
     }
     const handleFormSubmit = async (e) => {
         e.preventDefault();
-        await axios.post(`${process.env.REACT_APP_API_ENDPOINT}/invoice`, formData, {
-            headers: {
-                Accept: 'application/json',
-                Authorization: 'Bearer ' + localStorage.getItem('token')
-            }
-        }).then(resp => {
+        await axios.post(`/invoice`, formData, {}).then(resp => {
             toastSuccess(resp.data.message);
             toggle();
             datatable(true);
@@ -51,15 +51,40 @@ const Add = ({open, setOpen, datatable}) => {
             pay: false,
         });
         setFormData({
-            member: '',
+            member: member ? member.id : '',
             desc: '',
-            amount: '',
-            due: ''
+            price: 0,
+            discount: 0,
+            fees: 0,
+            amount: 0,
+            due: setDateForPicker(moment().toDate())
         });
+        member
+            ? setMemberSelected(() => memberOption.filter((item) => {
+                return item.value === member.id}))
+            : setMemberSelected([]);
+        setDue(moment().toDate());
     };
     useEffect(() => {
         handleMemberOption().then();
     }, []);
+    useEffect(() => {
+        if (member) {
+            setFormData({
+                ...formData, member: member.id
+            });
+            setMemberSelected(() => memberOption.filter((item) => {
+                return item.value === member.id
+            }));
+        }
+        // eslint-disable-next-line
+    }, [member]);
+    useEffect(() => {
+        setFormData({
+            ...formData, amount: ((price || 0) - (discount || 0)) + (fees || 0)
+        });
+        // eslint-disable-next-line
+    }, [price, discount, fees]);
     return <>
         <Modal isOpen={open} toggle={toggle}>
             <ModalHeader
@@ -81,38 +106,97 @@ const Add = ({open, setOpen, datatable}) => {
                         <div className="form-control-wrap">
                             <RSelect
                                 options={memberOption}
+                                value={memberSelected}
                                 onChange={(e) => {
                                     setFormData({...formData, member: e.value})
+                                    setMemberSelected(e);
                                 }}
                                 placeholder="Pilih Pelanggan"
                             />
                         </div>
                     </div>
                     <div className="form-group">
+                        <div className="form-control-wrap">
+                            <Label htmlFor="desc" className="form-label">
+                                Keterangan
+                            </Label>
+                            <input
+                                className="form-control"
+                                type="text"
+                                name="desc"
+                                placeholder="Ex. Pemasangan Baru"
+                                onChange={(e) => handleFormInput(e)}
+                            />
+                        </div>
+                    </div>
+                    <div className="form-group">
                         <Row className="gy-4">
                             <Col sm="6">
-                                <Label htmlFor="desc" className="form-label">
-                                    Keterangan
-                                </Label>
-                                <input
-                                    className="form-control"
-                                    type="text"
-                                    name="desc"
-                                    placeholder="Ex. Pemasangan Baru"
-                                    onChange={(e) => handleFormInput(e)}
-                                />
-                            </Col>
-                            <Col sm="6">
-                                <Label htmlFor="amount" className="form-label">
+                                <Label htmlFor="price" className="form-label">
                                     Harga
                                 </Label>
                                 <div className="form-control-wrap">
                                     <input
                                         className="form-control"
                                         type="text"
-                                        name="amount"
+                                        name="price"
                                         placeholder="Ex. 450000"
-                                        onChange={(e) => handleFormInput(e)}
+                                        onChange={(e) => {
+                                            handleFormInput(e)
+                                            setPrice(parseInt(e.target.value));
+                                        }}
+                                    />
+                                </div>
+                            </Col>
+                            <Col sm="6">
+                                <Label htmlFor="discount" className="form-label">
+                                    Diskon
+                                </Label>
+                                <div className="form-control-wrap">
+                                    <input
+                                        className="form-control"
+                                        type="text"
+                                        name="discount"
+                                        placeholder="Ex. 450000"
+                                        onChange={(e) => {
+                                            handleFormInput(e)
+                                            setDiscount(parseInt(e.target.value));
+                                        }}
+                                    />
+                                </div>
+                            </Col>
+                        </Row>
+                    </div>
+                    <div className="form-group">
+                        <Row className="gy-4">
+                            <Col sm="6">
+                                <Label htmlFor="fees" className="form-label">
+                                    Biaya Admin
+                                </Label>
+                                <div className="form-control-wrap">
+                                    <input
+                                        className="form-control"
+                                        type="text"
+                                        name="fees"
+                                        placeholder="Ex. 450000"
+                                        onChange={(e) => {
+                                            handleFormInput(e)
+                                            setFees(parseInt(e.target.value));
+                                        }}
+                                    />
+                                </div>
+                            </Col>
+                            <Col sm="6">
+                                <Label htmlFor="amount" className="form-label">
+                                    Total
+                                </Label>
+                                <div className="form-control-wrap">
+                                    <input
+                                        className="form-control"
+                                        type="text"
+                                        name="amount"
+                                        value={formData.amount}
+                                        disabled={true}
                                     />
                                 </div>
                             </Col>
@@ -124,6 +208,7 @@ const Add = ({open, setOpen, datatable}) => {
                         </Label>
                         <div className="form-control-wrap">
                             <DatePicker
+                                dateFormat="dd/MM/yyyy"
                                 selected={due}
                                 onChange={(e) => {
                                     setDue(e);

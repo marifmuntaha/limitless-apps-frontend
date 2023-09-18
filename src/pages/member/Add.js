@@ -1,13 +1,15 @@
-import {Button, Col, Label, Modal, ModalBody, ModalHeader, Row} from "reactstrap";
+import {Button, Col, Label, Modal, ModalBody, ModalHeader, Row, Spinner} from "reactstrap";
 import {Icon, toastSuccess} from "../../components";
 import React, {useState} from "react";
 import axios from "axios";
 import HandleError from "../auth/handleError";
 import DatePicker from "react-datepicker";
 import {setDateForPicker} from "../../utils/Utils";
+import moment from "moment";
 
 const Add = ({open, setOpen, datatable}) => {
-    const [installation, setInstallation] = useState(new Date());
+    const [loading, setLoading] = useState(false);
+    const [installation, setInstallation] = useState(moment().toDate());
     const [formDataUser, setFormDataUser] = useState({
         name: '',
         email: '',
@@ -19,7 +21,7 @@ const Add = ({open, setOpen, datatable}) => {
         user: '',
         name: '',
         address: '',
-        installation: setDateForPicker(installation),
+        installation: setDateForPicker(moment().toDate()),
         note: '',
     });
     const handleFormInputUser = (e) => {
@@ -30,38 +32,50 @@ const Add = ({open, setOpen, datatable}) => {
     }
     const handleFormSubmit = async (e) => {
         e.preventDefault();
-        await axios.post(`${process.env.REACT_APP_API_ENDPOINT}/user`, formDataUser, {
-            headers: {
-                Accept: 'application/json',
-                Authorization: 'Bearer ' + localStorage.getItem('token')
-            }
-        }).then(resp => {
-            setFormDataMember({...formDataMember, user: resp.data.result.id});
-            axios.post(`${process.env.REACT_APP_API_ENDPOINT}/member`, {
+        setLoading(true);
+        await axios.post(`/user`, formDataUser).then(resp => {
+            setFormDataMember({
+                ...formDataMember, user: resp.data.result.id
+            });
+            axios.post(`/member`, {
                 user: resp.data.result.id,
                 name: formDataMember.name,
                 address: formDataMember.address,
                 installation: formDataMember.installation,
                 note: formDataMember.note
-            }, {
-                headers: {
-                    Accept: 'application/json',
-                    Authorization: 'Bearer ' + localStorage.getItem('token')
-                }
             }).then(resp => {
                 toastSuccess(resp.data.message);
                 toggle();
                 datatable(true);
+                setLoading(false);
             }).catch(error => {
-                HandleError(error)
+                HandleError(error);
+                setLoading(false);
             });
-        }).catch(error => HandleError(error));
+        }).catch(error => {
+            HandleError(error);
+            setLoading(false);
+        });
     }
     const toggle = () => {
         setOpen({
             add: false,
             edit: false
         });
+        setFormDataUser({
+            name: '',
+            email: '',
+            password: '',
+            password_confirmation: '',
+            phone: '',
+        });
+        setFormDataMember({
+            user: '',
+            name: '',
+            address: '',
+            installation: setDateForPicker(moment().toDate()),
+            note: '',
+        })
     };
 
     return (
@@ -146,13 +160,18 @@ const Add = ({open, setOpen, datatable}) => {
                             Nomor HP
                         </Label>
                         <div className="form-control-wrap">
-                            <input
-                                className="form-control"
-                                type="text"
-                                name="phone"
-                                placeholder="Ex. 6282229366507"
-                                onChange={(e) => handleFormInputUser(e)}
-                            />
+                            <div className="input-group">
+                                <div className="input-group-prepend">
+                                    <span className="input-group-text">+62</span>
+                                </div>
+                                <input
+                                    className="form-control"
+                                    type="text"
+                                    name="phone"
+                                    placeholder="Ex. 82229366507"
+                                    onChange={(e) => handleFormInputUser(e)}
+                                />
+                            </div>
                         </div>
                     </div>
                     <div className="form-group">
@@ -175,8 +194,14 @@ const Add = ({open, setOpen, datatable}) => {
                         <div className="form-control-wrap">
                             <div className="form-file">
                                 <DatePicker
+                                    dateFormat="dd/MM/yyyy"
                                     selected={installation}
-                                    onChange={setInstallation}
+                                    onChange={(e) => {
+                                        setInstallation(e);
+                                        setFormDataMember({
+                                            ...formDataMember, installation: setDateForPicker(e)
+                                        })
+                                    }}
                                     className="form-control date-picker"/>{" "}
                             </div>
                         </div>
@@ -196,8 +221,14 @@ const Add = ({open, setOpen, datatable}) => {
                         </div>
                     </div>
                     <div className="form-group">
-                        <Button size="lg" className="btn-block" type="submit" color="primary">
-                            SIMPAN
+                        <Button
+                            size="lg"
+                            className="btn-block"
+                            type="submit"
+                            color="primary"
+                            disabled={loading}
+                        >
+                            {loading ? <Spinner size="sm" color="light"/> : 'SIMPAN' }
                         </Button>
                     </div>
                 </form>

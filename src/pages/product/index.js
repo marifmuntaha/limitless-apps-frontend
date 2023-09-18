@@ -10,8 +10,8 @@ import {
     PreviewCard,
     ReactDataTable, toastSuccess
 } from "../../components";
-import {Badge, Button, ButtonGroup} from "reactstrap";
-import Add from "./add";
+import {Badge, Button, ButtonGroup, Spinner} from "reactstrap";
+import Add from "./Add";
 import {ToastContainer} from "react-toastify";
 import axios from "axios";
 import handleError from "../auth/handleError";
@@ -20,6 +20,10 @@ import Edit from "./Edit";
 import {Currency} from "../../utils/Utils";
 
 const Product = () => {
+    const [loading, setLoading] = useState({
+        show: '',
+        delete: ''
+    });
     const [products, setProducts] = useState();
     const [product, setProduct] = useState([]);
     const [reload, setReload] = useState(true);
@@ -65,67 +69,69 @@ const Product = () => {
                     <Button
                         color="outline-info"
                         onClick={() => handleProductShow(row.id)}
+                        disabled={row.id === loading.show}
 
                     >
-                        <Icon name="edit"/></Button>
+                        {row.id === loading.show ? <Spinner size="sm" color="info"/> : <Icon name="edit"/> }
+                    </Button>
                     <Button
                         color="outline-danger"
                         onClick={() => handleProductDelete(row.id)}
+                        disabled={row.id === loading.delete}
                     >
-                        <Icon name="trash"/>
+                        {row.id === loading.delete ? <Spinner size="sm" color="danger"/> : <Icon name="trash"/> }
                     </Button>
                 </ButtonGroup>
             )
         },
     ];
     const handleProductsData = async () => {
-        await axios.get(`${process.env.REACT_APP_API_ENDPOINT}/product`, {
-            headers: {
-                Accept: 'application/json',
-                Authorization: 'Bearer ' + localStorage.getItem('token')
-            }
-        }).then(resp => {
-            setProducts(resp.data.result);
-        }).catch(error => {
-            handleError(error);
-        });
+        await axios.get(`/product`, {})
+            .then(resp => setProducts(resp.data.result))
+            .catch(error => handleError(error));
     }
     const handleProductShow = async (id) => {
-        await axios.get(`${process.env.REACT_APP_API_ENDPOINT}/product/${id}`, {
-            headers: {
-                Accept: 'application/json',
-                Authorization: 'Bearer ' + localStorage.getItem('token')
-            }
-        }).then(resp => {
-            setProduct(resp.data.result);
-            setModal({
-                add: false,
-                edit: true
-            })
-        }).catch(error => {
-            handleError(error);
+        setLoading({
+            show: id,
+            delete: ''
         });
+        await axios.get(`/product/${id}`, {})
+            .then(resp => {
+                setProduct(resp.data.result);
+                setModal({
+                    add: false,
+                    edit: true
+                });
+                setLoading({
+                    show: '',
+                    delete: ''
+                })
+            })
+            .catch(error => handleError(error));
     }
     const handleProductDelete = async (id) => {
-        await axios.delete(`${process.env.REACT_APP_API_ENDPOINT}/product/${id}`, {
-            headers: {
-                Accept: 'application/json',
-                Authorization: 'Bearer ' + localStorage.getItem('token')
-            }
-        }).then(resp => {
-            toastSuccess(resp.data.message);
-            setReload(true);
-        }).catch(error => {
-            HandleError(error);
+        setLoading({
+            show: '',
+            delete: id
         });
+        await axios.delete(`/product/${id}`, {})
+            .then(resp => {
+                toastSuccess(resp.data.message);
+                setReload(true);
+                setLoading({
+                    show: '',
+                    delete: ''
+                })
+            })
+            .catch(error => HandleError(error));
     }
 
     useEffect(() => {
         reload === true &&
-            handleProductsData().then(() => setReload(false))
+        handleProductsData().then(() => setReload(false))
     }, [reload]);
     return <>
-        <Head title="Produk" />
+        <Head title="Produk"/>
         <Content page="component">
             <BlockHead size="lg" wide="sm">
                 <BlockHeadContent>
@@ -139,7 +145,8 @@ const Product = () => {
                     <BlockHeadContent>
                         <BlockTitle tag="h4">Data Produk</BlockTitle>
                         <p>
-                            Just import <code>ReactDataTable</code> from <code>components</code>, it is built in for react dashlite.
+                            Just import <code>ReactDataTable</code> from <code>components</code>, it is built in for
+                            react dashlite.
                         </p>
                     </BlockHeadContent>
                     <BlockHeadContent>
@@ -151,7 +158,7 @@ const Product = () => {
                                     edit: false
                                 })}
                             >
-                                <Icon name="plus" />
+                                <Icon name="plus"/>
                                 <span>Tambah</span>
                             </Button>
                         </div>
@@ -159,11 +166,11 @@ const Product = () => {
                 </BlockBetween>
             </BlockHead>
             <PreviewCard>
-                <ReactDataTable data={products} columns={Columns} expandableRows pagination />
+                <ReactDataTable data={products} columns={Columns} expandableRows pagination onLoad={reload}/>
             </PreviewCard>
             <Add open={modal.add} setOpen={setModal} datatable={setReload}/>
-            <Edit open={modal.edit} setOpen={setModal} datatable={setReload} product={product} />
-            <ToastContainer />
+            <Edit open={modal.edit} setOpen={setModal} datatable={setReload} product={product}/>
+            <ToastContainer/>
         </Content>
     </>
 }

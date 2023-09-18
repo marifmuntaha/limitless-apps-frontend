@@ -7,23 +7,59 @@ import LogoDark from "../../images/limitless/logo-dark.png";
 import axios from "axios";
 import HandleError from "../auth/handleError";
 import {Currency} from "../../utils/Utils";
+import {Badge} from "reactstrap";
 
 const Print = () => {
     const {invoiceID} = useParams()
     const [invoice, setInvoice] = useState([]);
     const handleInvoiceData = async () => {
-      await axios.get(`${process.env.REACT_APP_API_ENDPOINT}/invoice/${invoiceID}`, {
-          headers: {
-              Accept: 'application/json',
-              Authorization: 'Bearer ' + localStorage.getItem('token')
-          }
-      }).then(resp => {
+      await axios.get(`/invoice/${invoiceID}`, {}).then(resp => {
           setInvoice(resp.data.result);
-          console.log(resp.data.result);
       }).catch(error => HandleError(error));
+    }
+    const handleInvoiceStatusText = (status) => {
+        let state = '';
+        switch (status) {
+            case '1':
+                state = 'Lunas'
+                break;
+            case '2':
+                state = 'Belum Lunas'
+                break;
+            case '3':
+                state = 'Batal'
+                break;
+            case '4':
+                state = 'Jatuh Tempo'
+                break;
+            default :
+                state = ''
+        }
+        return state;
+    }
+    const handleInvoiceStatusColor = (status) => {
+        let state = '';
+        switch (status) {
+            case '1':
+                state = 'success'
+                break;
+            case '2':
+                state = 'warning'
+                break;
+            case '3':
+                state = 'grey'
+                break;
+            case '4':
+                state = 'danger'
+                break;
+            default :
+                state = ''
+        }
+        return state;
     }
     useEffect(() => {
         handleInvoiceData().then();
+        // eslint-disable-next-line
     }, []);
     return (
         <body className="bg-white">
@@ -74,6 +110,9 @@ const Print = () => {
                                             <span>JATUH TEMPO</span>:<span>{invoice.due}</span>
                                         </li>
                                     </ul>
+                                    <Badge className="badge-md" pill color={handleInvoiceStatusColor(invoice.status)}>
+                                        {handleInvoiceStatusText(invoice.status)}
+                                    </Badge>
                                 </div>
                             </div>
                             <div className="invoice-bills">
@@ -92,26 +131,26 @@ const Print = () => {
                                         <tr>
                                             <td>{invoice.product ? invoice.product.name : '-'}</td>
                                             <td>{invoice.desc}</td>
-                                            <td>{Currency(invoice.product ? invoice.product.price : invoice.amount)}</td>
+                                            <td>{Currency(invoice.product ? invoice.product.price : invoice.price)}</td>
                                             <td>1</td>
-                                            <td>{Currency(invoice.amount)}</td>
+                                            <td>{Currency(invoice.price)}</td>
                                         </tr>
                                         </tbody>
                                         <tfoot>
                                         <tr>
                                             <td colSpan="2"></td>
                                             <td colSpan="2">Subtotal</td>
-                                            <td>{Currency(invoice.amount)}</td>
+                                            <td>{Currency(invoice.price)}</td>
                                         </tr>
                                         <tr>
                                             <td colSpan="2"></td>
                                             <td colSpan="2">Diskon</td>
-                                            <td>{Currency(0)}</td>
+                                            <td>{Currency(invoice.discount)}</td>
                                         </tr>
                                         <tr>
                                             <td colSpan="2"></td>
                                             <td colSpan="2">Biaya Admin</td>
-                                            <td>{Currency(0)}</td>
+                                            <td>{Currency(invoice.fees)}</td>
                                         </tr>
                                         <tr>
                                             <td colSpan="2"></td>

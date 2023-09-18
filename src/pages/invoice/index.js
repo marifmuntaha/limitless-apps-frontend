@@ -16,7 +16,7 @@ import axios from "axios";
 import HandleError from "../auth/handleError";
 import {Currency} from "../../utils/Utils";
 import {useNavigate} from "react-router-dom";
-import Pay from "./partials/payment/Add"
+import Pay from "../partials/payment/Add"
 import Add from "./Add";
 import {ToastContainer} from "react-toastify";
 import Edit from "./Edit";
@@ -36,6 +36,35 @@ const Invoice = () => {
     });
     const [invoices, setInvoices] = useState([]);
     const [invoice, setInvoice] = useState([]);
+    const yearOption = [
+        {value: '', label: 'Semua'},
+        {value: '2023', label: '2023'},
+        {value: '2024', label: '2024'},
+        {value: '2025', label: '2025'},
+        {value: '2026', label: '2026'},
+    ]
+    const monthOption = [
+        {value: '', label: 'Semua'},
+        {value: '01', label: 'Januari'},
+        {value: '02', label: 'Februari'},
+        {value: '03', label: 'Maret'},
+        {value: '04', label: 'April'},
+        {value: '05', label: 'Mei'},
+        {value: '06', label: 'Juni'},
+        {value: '07', label: 'Juli'},
+        {value: '08', label: 'Agustus'},
+        {value: '09', label: 'September'},
+        {value: '10', label: 'Oktober'},
+        {value: '11', label: 'November'},
+        {value: '12', label: 'Desember'},
+    ]
+    const statusOption = [
+        {value: '', label: 'Semua'},
+        {value: '1', label: 'Lunas'},
+        {value: '2', label: 'Belum Lunas'},
+        {value: '3', label: 'Batal'},
+        {value: '4', label: 'Jatuh Tempo'},
+    ]
     const navigate = useNavigate();
     const Columns = [
         {
@@ -81,9 +110,9 @@ const Invoice = () => {
             cell: (row) => (
                 <Badge
                     className="badge-dot"
-                    color={row.status === '1' ? 'danger' : row.status === '2' ? 'success' : 'gray'}
+                    color={handleInvoiceStatusColor(row.status)}
                 >
-                    {row.status === '1' ? 'unpaid' : row.status === '2' ? 'paid' : 'cancel'}
+                    {handleInvoiceStatusText(row.status)}
                 </Badge>
             )
         },
@@ -94,7 +123,7 @@ const Invoice = () => {
             hide: 370,
             cell: (row) => (
                 <ButtonGroup size="sm">
-                    {row.status === '1' && (
+                    {row.status === '2' && (
                         <Button
                             color="outline-info"
                             onClick={(e) => handlePaymentShow(row.id)}
@@ -104,7 +133,7 @@ const Invoice = () => {
                     )}
                     <Button
                         color="outline-success"
-                        onClick={(e) => handleSendWhatsapp(row.id)}
+                        onClick={(e) => handleNotificationSend(row.id)}
                     >
                         <Icon name="whatsapp"/>
                     </Button>
@@ -142,65 +171,84 @@ const Invoice = () => {
             )
         },
     ];
+    const handleInvoiceStatusText = (status) => {
+        let state = '';
+        switch (status) {
+            case '1':
+                state = 'paid'
+                break;
+            case '2':
+                state = 'unpaid'
+                break;
+            case '3':
+                state = 'cancel'
+                break;
+            case '4':
+                state = 'overdue'
+                break;
+            default :
+                state = ''
+        }
+        return state;
+    }
+    const handleInvoiceStatusColor = (status) => {
+        let state = '';
+        switch (status) {
+            case '1':
+                state = 'success'
+                break;
+            case '2':
+                state = 'warning'
+                break;
+            case '3':
+                state = 'grey'
+                break;
+            case '4':
+                state = 'danger'
+                break;
+            default :
+                state = ''
+        }
+        return state;
+    }
     const handleInvoiceData = async () => {
-        await axios.get(`${process.env.REACT_APP_API_ENDPOINT}/invoice`, {
+        await axios.get(`/invoice`, {
             params: filter,
-            headers: {
-                Accept: 'application/json',
-                Authorization: 'Bearer ' + localStorage.getItem('token')
-            }
         }).then(resp => {
             setInvoices(resp.data.result);
             setReload(false);
         }).catch(error => HandleError(error));
     }
     const handleInvoiceShow = async (id) => {
-        await axios.get(`${process.env.REACT_APP_API_ENDPOINT}/invoice/${id}`, {
-            headers: {
-                Accept: 'application/json',
-                Authorization: 'Bearer ' + localStorage.getItem('token')
-            }
-        }).then(resp => {
+        await axios.get(`/invoice/${id}`, {}).then(resp => {
             setInvoice(resp.data.result);
             setModal({
                 add: false,
                 edit: true,
                 pay: false
             });
-        }).catch(error => {
-            HandleError(error);
-        });
+        }).catch(error => HandleError(error));
     }
     const handleInvoiceDelete = async (id) => {
-        await axios.delete(`${process.env.REACT_APP_API_ENDPOINT}/invoice/${id}`, {
-            headers: {
-                Accept: 'application/json',
-                Authorization: 'Bearer ' + localStorage.getItem('token')
-            }
-        }).then(resp => {
+        await axios.delete(`/invoice/${id}`, {}).then(resp => {
             toastSuccess(resp.data.message);
             setReload(true);
         }).catch(error => HandleError(error));
     }
     const handlePaymentShow = async (id) => {
-        await axios.get(`${process.env.REACT_APP_API_ENDPOINT}/invoice/${id}`, {
-            headers: {
-                Accept: 'application/json',
-                Authorization: 'Bearer ' + localStorage.getItem('token')
-            }
-        }).then(resp => {
+        await axios.get(`/invoice/${id}`, {}).then(resp => {
             setInvoice(resp.data.result);
             setModal({
                 add: false,
                 edit: false,
                 pay: true
             });
-        }).catch(error => {
-            HandleError(error);
-        });
+        }).catch(error => HandleError(error));
     }
-    const handleSendWhatsapp = () => {
-
+    const handleNotificationSend = async (id) => {
+        await axios.post(`/invoice/send-notification/${id}`, null, {}).then(resp => {
+            toastSuccess(resp.data.message);
+        }).catch(error => HandleError(error));
     }
 
     useEffect(() => {
@@ -263,13 +311,7 @@ const Invoice = () => {
                         <Col sm="2">
                             <div className="form-control-wrap">
                                 <RSelect
-                                    options={[
-                                        {value: '', label: 'Semua'},
-                                        {value: '2023', label: '2023'},
-                                        {value: '2024', label: '2024'},
-                                        {value: '2025', label: '2025'},
-                                        {value: '2026', label: '2026'},
-                                    ]}
+                                    options={yearOption}
                                     onChange={(e) => {
                                         setFilter({...filter, year: e.value});
                                         setReload(true);
@@ -281,25 +323,11 @@ const Invoice = () => {
                         <Col sm="2">
                             <div className="form-control-wrap">
                                 <RSelect
-                                    options={[
-                                        {value: '', label: 'Semua'},
-                                        {value: '01', label: 'Januari'},
-                                        {value: '02', label: 'Februari'},
-                                        {value: '03', label: 'Maret'},
-                                        {value: '04', label: 'April'},
-                                        {value: '05', label: 'Mei'},
-                                        {value: '06', label: 'Juni'},
-                                        {value: '07', label: 'Juli'},
-                                        {value: '08', label: 'Agustus'},
-                                        {value: '09', label: 'September'},
-                                        {value: '10', label: 'Oktober'},
-                                        {value: '11', label: 'November'},
-                                        {value: '12', label: 'Desember'},
-                                    ]}
+                                    options={monthOption}
                                     onChange={(e) => {
                                         setFilter({...filter, month: e.value});
                                         setReload(true);
-                                    }}
+                                    }} s
                                     placeholder="Bulan"
                                 />
                             </div>
@@ -307,12 +335,7 @@ const Invoice = () => {
                         <Col sm="2">
                             <div className="form-control-wrap">
                                 <RSelect
-                                    options={[
-                                        {value: '', label: 'Semua'},
-                                        {value: '1', label: 'Belum Lunas'},
-                                        {value: '2', label: 'Lunas'},
-                                        {value: '3', label: 'Batal'},
-                                    ]}
+                                    options={statusOption}
                                     onChange={(e) => {
                                         setFilter({...filter, status: e.value});
                                         setReload(true);
@@ -326,7 +349,7 @@ const Invoice = () => {
                 <ReactDataTable data={invoices} columns={Columns} pagination className="nk-tb-list" selectableRows/>
             </PreviewCard>
             <Add open={modal.add} setOpen={setModal} datatable={setReload}/>
-            <Edit open={modal.edit} setOpen={setModal} datatable={setReload} invoice={invoice} />
+            <Edit open={modal.edit} setOpen={setModal} datatable={setReload} invoice={invoice}/>
             <Pay open={modal.pay} setOpen={setModal} datatable={setReload} invoice={invoice}/>
 
         </Content>

@@ -72,18 +72,18 @@ export const dateFormatter = (date, reverse) => {
 
 //Month Names
 export const monthNames = [
-    "January",
-    "February",
-    "March",
+    "Januari",
+    "Februari",
+    "Maret",
     "April",
-    "May",
-    "June",
-    "July",
-    "August",
+    "Mei",
+    "Juni",
+    "Juli",
+    "Augustus",
     "September",
-    "October",
+    "Oktober",
     "November",
-    "December",
+    "Desember",
 ];
 
 //todays Date
@@ -155,12 +155,4 @@ export const Currency = (number) => {
         currency: 'IDR',
         minimumFractionDigits: 0,
     }).format(number);
-}
-
-export const RandomBG = () => {
-    let color = [
-        "purple", "info", "danger", "primary", "warning", "success", "pink", "secondary", "blue",
-    ]
-    let randomNumber = Math.floor(Math.random() * color.length);
-    return color[randomNumber];
 }

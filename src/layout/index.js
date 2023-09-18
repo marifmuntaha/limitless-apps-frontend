@@ -13,18 +13,13 @@ const Layout = ({title, ...props}) => {
     const [auth, setAuth] = useState(false);
     const [loading, setLoading] = useState(false);
     const [user, setUser] = useState([]);
-
     const handleAuthCheck = async () => {
         const token = localStorage.getItem('token');
         if (!token) {
             setAuth(false);
             setLoading(true);
         } else {
-            await axios.get(`${process.env.REACT_APP_API_ENDPOINT}/auth/user-info`, {
-                headers: {
-                    Accept: 'application/json',
-                    Authorization: 'Bearer ' + token
-                }
+            await axios.get("/auth/user-info", {
             }).then(resp => {
                 setAuth(true);
                 setUser(resp.data.result);

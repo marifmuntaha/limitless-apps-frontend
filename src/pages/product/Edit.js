@@ -1,10 +1,11 @@
-import {Button, Col, Label, Modal, ModalBody, ModalHeader, Row} from "reactstrap";
+import {Button, Col, Label, Modal, ModalBody, ModalHeader, Row, Spinner} from "reactstrap";
 import {Icon, RSelect, toastSuccess} from "../../components";
 import React, {useEffect, useState} from "react";
 import axios from "axios";
 import HandleError from "../auth/handleError";
 
 const Edit = ({open, setOpen, datatable, product}) => {
+    const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         id: '',
         code: '',
@@ -16,28 +17,28 @@ const Edit = ({open, setOpen, datatable, product}) => {
     });
     const [cycleSelected, setCycleSelected] = useState({});
     const cycleOption = [
-        {value: '1', label:'Bulanan'},
-        {value: '2', label:'3 Bulan'},
-        {value: '3', label:'6 Bulan'},
-        {value: '4', label:'Tahunan'},
+        {value: '1', label: 'Bulanan'},
+        {value: '2', label: '3 Bulan'},
+        {value: '3', label: '6 Bulan'},
+        {value: '4', label: 'Tahunan'},
     ]
     const handleFormInput = (e) => {
         setFormData({...formData, [e.target.name]: e.target.value});
     }
     const handleFormSubmit = async (e) => {
         e.preventDefault();
-        await axios.put(`${process.env.REACT_APP_API_ENDPOINT}/product/${formData.id}`, formData, {
-            headers: {
-                Accept: 'application/json',
-                Authorization: 'Bearer ' + localStorage.getItem('token')
-            }
-        }).then(resp => {
-            toastSuccess(resp.data.message);
-            toggle();
-            datatable(true);
-        }).catch(error => {
-            HandleError(error)
-        });
+        setLoading(true);
+        await axios.put(`/product/${formData.id}`, formData, {})
+            .then(resp => {
+                toastSuccess(resp.data.message);
+                toggle();
+                datatable(true);
+                setLoading(false);
+            })
+            .catch(error => {
+                HandleError(error);
+                setLoading(false);
+            });
     }
     const toggle = () => {
         setOpen({
@@ -161,8 +162,14 @@ const Edit = ({open, setOpen, datatable, product}) => {
                         </Row>
                     </div>
                     <div className="form-group">
-                        <Button size="lg" className="btn-block" type="submit" color="primary">
-                            SIMPAN
+                        <Button
+                            size="lg"
+                            className="btn-block"
+                            type="submit"
+                            color="primary"
+                            disabled={loading}
+                        >
+                            {loading ? <Spinner size="sm" color="light"/> : 'SIMPAN' }
                         </Button>
                     </div>
                 </form>

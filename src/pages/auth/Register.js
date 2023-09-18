@@ -38,7 +38,7 @@ const Register = () => {
     const handleFormSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
-        await axios.post(`${process.env.REACT_APP_API_ENDPOINT}/auth/register`, formData)
+        await axios.post("/auth/register", formData)
             .then(resp => {
                 setLoading(false);
                 toastSuccess(resp.data.message);

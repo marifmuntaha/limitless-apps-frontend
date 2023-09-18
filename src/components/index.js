@@ -14,9 +14,10 @@ import DataTablePagination from "./pagination/DataTablePagination";
 import Icon from "./icon";
 import {LinkItem, LinkList} from "./links";
 import {OverlineTitle} from "./text";
-import {PreviewCard} from "./preview"
+import {PreviewCard, PreviewAltCard} from "./preview"
 import ReactDataTable from "./table/ReactDataTable";
 import RSelect from "./select/ReactSelect";
+import {TCDoughnut} from "./chart/analytics/AnalyticsCharts"
 import {
     toastSuccess,
     toastWarning,
@@ -43,11 +44,13 @@ export {
     LinkItem,
     LinkList,
     OverlineTitle,
+    PreviewAltCard,
     PreviewCard,
     ReactDataTable,
     Row,
     RSelect,
     Sidebar,
+    TCDoughnut,
     toastError,
     toastInfo,
     toastSuccess,

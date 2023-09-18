@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import DataTable from "react-data-table-component";
 import exportFromJSON from "export-from-json";
 import CopyToClipboard from "react-copy-to-clipboard";
-import { Col, Modal, ModalBody, Row, Button } from "reactstrap";
+import {Col, Modal, ModalBody, Row, Button, Spinner} from "reactstrap";
 import {DataTablePagination} from "../"
 
 const Export = ({ data }) => {
@@ -93,7 +93,7 @@ const CustomCheckbox = React.forwardRef(({ onClick, ...rest }, ref) => (
   </div>
 ));
 
-const ReactDataTable = ({ data, columns, pagination, actions, className, selectableRows, expandableRows }) => {
+const ReactDataTable = ({ data, columns, pagination, actions, className, selectableRows, expandableRows, onLoad }) => {
   const [tableData, setTableData] = useState(data);
   const [searchText, setSearchText] = useState("");
   const [rowsPerPageS, setRowsPerPage] = useState(10);
@@ -182,7 +182,7 @@ const ReactDataTable = ({ data, columns, pagination, actions, className, selecta
         selectableRowsComponent={CustomCheckbox}
         expandableRowsComponent={ExpandableRowComponent}
         expandableRows={mobileView}
-        noDataComponent={<div className="p-2">Tidak ada data</div>}
+        noDataComponent={onLoad ? <div className="p-2"><Spinner color="light" /></div> : <div className="p-2">Tidak ada data</div>}
         sortIcon={
           <div>
             <span>&darr;</span>
