@@ -1,4 +1,4 @@
-import {Button, Col, Label, Modal, ModalBody, ModalHeader, Row} from "reactstrap";
+import {Button, Col, Label, Modal, ModalBody, ModalHeader, Row, Spinner} from "reactstrap";
 import {Icon, RSelect, toastSuccess} from "../../../components";
 import React, {useEffect, useState} from "react";
 import axios from "axios";
@@ -7,6 +7,7 @@ import DatePicker from "react-datepicker";
 import {setDateForPicker} from "../../../utils/Utils";
 
 const Add = ({open, setOpen, datatable, member}) => {
+    const [loading, setLoading] = useState(false);
     const [due, setDue] = useState(new Date());
     const [formData, setFormData] = useState({
         member: '',
@@ -22,19 +23,27 @@ const Add = ({open, setOpen, datatable, member}) => {
             params: {
                 type: 'select'
             },
-        }).then(resp => setProductOption(resp.data.result))
-            .catch(error => HandleError(error));
+        }).then(resp => {
+            setProductOption(resp.data.result);
+        }).catch(error => {
+            setLoading(false);
+        });
     }
     const handleFormInput = (e) => {
         setFormData({...formData, [e.target.name]: e.target.value});
     }
     const handleFormSubmit = async (e) => {
+        setLoading(true);
         e.preventDefault();
-        await axios.post(`/order`, formData, {}).then(resp => {
+        await axios.post(`/order`, formData).then(resp => {
             toastSuccess(resp.data.message);
             toggle();
             datatable(true);
-        }).catch(error => HandleError(error));
+            setLoading(false);
+        }).catch(error => {
+            HandleError(error);
+            setLoading(false);
+        });
     }
     const toggle = () => {
         setOpen({
@@ -154,8 +163,8 @@ const Add = ({open, setOpen, datatable, member}) => {
                         </Row>
                     </div>
                     <div className="form-group">
-                        <Button size="lg" className="btn-block" type="submit" color="primary">
-                            SIMPAN
+                        <Button size="lg" className="btn-block" type="submit" color="primary" disabled={loading}>
+                            {loading ? <Spinner size="sm" color="light"/> : "SIMPAN" }
                         </Button>
                     </div>
                 </form>

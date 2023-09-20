@@ -99,8 +99,7 @@ const Cashflow = () => {
                                         <Button
                                             color="secondary"
                                             onClick={() => setModalIn({
-                                                add: true,
-                                                edit: false
+                                                ...modalIn, add: true,
                                             })}
                                         >
                                             <Icon name="plus" />

@@ -14,7 +14,7 @@ import {
     PreviewCard, toastSuccess,
 } from "../../components";
 import {Form, Spinner} from "reactstrap";
-import {Link, useNavigate} from "react-router-dom";
+import {Link} from "react-router-dom";
 import axios from "axios";
 import handleError from "./handleError";
 import {ToastContainer} from "react-toastify";
@@ -26,7 +26,6 @@ const Login = () => {
         email: '',
         password: ''
     });
-    const navigate = useNavigate();
     const handleInputForm = (e) => {
         setFormData({...formData, [e.target.name]: e.target.value})
     }
@@ -34,19 +33,17 @@ const Login = () => {
     const handleFormSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
-        await axios.post("/auth/login", formData)
-            .then(resp => {
-                setLoading(false);
-                localStorage.setItem('token', resp.data.result.token);
-                toastSuccess('Berhasil masuk, anda akan dialihkan dalam 2 detik')
-                setTimeout(() => {
-                    navigate('/');
-                }, 2000);
-            })
-            .catch(error => {
-                handleError(error);
-                setLoading(false);
-            });
+        await axios.post("/auth/login", formData).then(resp => {
+            setLoading(false);
+            localStorage.setItem('token', resp.data.result.token);
+            toastSuccess('Berhasil masuk, anda akan dialihkan dalam 2 detik')
+            setTimeout(() => {
+                window.location.href = process.env.PUBLIC_URL + "/";
+            }, 2000);
+        }).catch(error => {
+            handleError(error);
+            setLoading(false);
+        });
     }
     return <>
         <Head title="Masuk"/>

@@ -7,7 +7,7 @@ import {
     PreviewCard,
     ReactDataTable, toastSuccess
 } from "../../../components";
-import {Badge, Button, ButtonGroup} from "reactstrap";
+import {Badge, Button, ButtonGroup, Spinner} from "reactstrap";
 import {Currency, monthNames, setDateForPicker} from "../../../utils/Utils";
 import axios from "axios";
 import HandleError from "../../auth/handleError";
@@ -15,7 +15,13 @@ import Add from "./Add";
 import Edit from "./Edit";
 import moment from "moment";
 
-const Order = ({member, setReloadInvoice}) => {
+const Order = ({setReloadInvoice, ...props}) => {
+    const member = props.member;
+    const [loading, setLoading] = useState({
+        submit: '',
+        show: '',
+        delete: ''
+    });
     const [reload, setReload] = useState(true);
     const [modal, setModal] = useState({
         add: false,
@@ -62,21 +68,24 @@ const Order = ({member, setReloadInvoice}) => {
                         <Button
                             color="outline-info"
                             onClick={() => handleInvoiceSubmit(row)}
+                            disabled={row === loading.submit}
                         >
-                            <Icon name="ticket"/>
+                            {row === loading.submit ? <Spinner size="sm" color="info"/> : <Icon name="ticket"/>}
                         </Button>
                     )}
                     <Button
                         color="outline-warning"
                         onClick={() => handleOrderShow(row.id)}
+                        disabled={row.id === loading.show}
                     >
-                        <Icon name="edit"/>
+                        {row.id === loading.show ? <Spinner size="sm" color="warning"/> : <Icon name="edit"/>}
                     </Button>
                     <Button
                         color="outline-danger"
                         onClick={() => handleOrderDelete(row.id)}
+                        disabled={row.id === loading.delete}
                     >
-                        <Icon name="trash"/>
+                        {row.id === loading.delete ? <Spinner size="sm" color="danger"/> : <Icon name="trash"/>}
                     </Button>
                 </ButtonGroup>
             )
@@ -91,23 +100,45 @@ const Order = ({member, setReloadInvoice}) => {
             .catch(error => HandleError(error));
     }
     const handleOrderShow = async (id) => {
-        await axios.get(`/order/${id}`, {}).then(resp => {
+        setLoading({
+            ...loading, show: id
+        });
+        await axios.get(`/order/${id}`).then(resp => {
             setOrder(resp.data.result);
             setModal({
-                add: false,
-                edit: true
+                ...modal, edit: true
+            });
+            setLoading({
+                ...loading, show: ''
             });
         }).catch(error => {
             HandleError(error);
+            setLoading({
+                ...loading, show: ''
+            });
         });
     }
     const handleOrderDelete = async (id) => {
-        await axios.delete(`/order/${id}`, {}).then(resp => {
+        setLoading({
+            ...loading, delete: id
+        });
+        await axios.delete(`/order/${id}`).then(resp => {
             toastSuccess(resp.data.message);
             setReload(true);
-        }).catch(error => HandleError(error));
+            setLoading({
+                ...loading, delete : ''
+            });
+        }).catch(error => {
+            HandleError(error);
+            setLoading({
+                ...loading, delete : ''
+            });
+        });
     }
     const handleInvoiceSubmit = async (order) => {
+        setLoading({
+            ...loading, submit: order
+        });
         await axios.get(`/invoice`, {
             params: {
                 member: member.id,
@@ -115,9 +146,9 @@ const Order = ({member, setReloadInvoice}) => {
             },
         }).then(resp => {
             let invoice = resp.data.result.pop();
-            let due = invoice ?
-                moment(invoice.due, 'YYYY-MM-DD').add(1, 'months').toDate() :
-                moment(order.due, 'YYYY-MM-DD').toDate();
+            let due = invoice
+                ? moment(invoice.due, 'YYYY-MM-DD').add(1, 'months').toDate()
+                : moment(order.due, 'YYYY-MM-DD').toDate();
             axios.post(`/invoice`, {
                 member: member.id,
                 product: order.product.id,
@@ -126,14 +157,27 @@ const Order = ({member, setReloadInvoice}) => {
                 amount: order.price,
                 status: '1',
                 due: setDateForPicker(due),
-            }, {}).then(resp => {
+            }).then(resp => {
                 toastSuccess(resp.data.message);
                 setReloadInvoice(true);
-            }).catch(error => HandleError(error));
-        }).catch(error => HandleError(error));
+                setLoading({
+                    ...loading, submit: ''
+                });
+            }).catch(error => {
+                HandleError(error);
+                setLoading({
+                    ...loading, submit: ''
+                });
+            });
+        }).catch(error => {
+            HandleError(error);
+            setLoading({
+                ...loading, submit: ''
+            });
+        });
     }
     useEffect(() => {
-        handleOrdersData().then(() => setReload(false));
+        member.id && handleOrdersData().then(() => setReload(false));
         // eslint-disable-next-line
     }, [reload, member]);
     return <>
@@ -163,7 +207,9 @@ const Order = ({member, setReloadInvoice}) => {
             </BlockBetween>
         </BlockHead>
         <PreviewCard>
-            <ReactDataTable data={orders} columns={Columns} expandableRows pagination onLoad={reload}/>
+            {order && (
+                <ReactDataTable data={orders} columns={Columns} expandableRows pagination onLoad={reload}/>
+            )}
         </PreviewCard>
         <Add open={modal.add} setOpen={setModal} datatable={setReload} member={member}/>
         <Edit open={modal.edit} setOpen={setModal} datatable={setReload} order={order}/>

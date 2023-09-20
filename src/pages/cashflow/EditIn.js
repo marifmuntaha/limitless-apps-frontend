@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from "react";
-import {Button, Label, Modal, ModalBody, ModalHeader} from "reactstrap";
+import {Button, Label, Modal, ModalBody, ModalHeader, Spinner} from "reactstrap";
 import {Icon, RSelect, toastSuccess} from "../../components";
 import DatePicker from "react-datepicker";
 import {setDateForPicker} from "../../utils/Utils";
@@ -8,6 +8,7 @@ import axios from "axios";
 import HandleError from "../auth/handleError";
 
 const EditIn = ({open, setOpen, datatable, cashflow}) => {
+    const [loading, setLoading] = useState(false);
     const [createdAt, setCreatedAt] = useState(moment().toDate());
     const [formData, setFormData] = useState({
         id: '',
@@ -24,15 +25,22 @@ const EditIn = ({open, setOpen, datatable, cashflow}) => {
             params: {
                 type: 'select'
             },
-        }).then(resp => setMethodOption(resp.data.result)).catch(error => HandleError(error));
+        }).then(resp => {
+            setMethodOption(resp.data.result);
+        }).catch(error => HandleError(error));
     }
     const handleFormSubmit = async (e) => {
+        setLoading(true);
         e.preventDefault();
-        await axios.put(`/cashflow/${formData.id}`, formData, {}).then(resp => {
+        await axios.put(`/cashflow/${formData.id}`, formData).then(resp => {
             toastSuccess(resp.data.message);
             toggle();
             datatable(true);
-        }).catch(error => HandleError(error));
+            setLoading(false);
+        }).catch(error => {
+            HandleError(error);
+            setLoading(false);
+        });
     }
     const handleFormInput = (e) => {
         setFormData({...formData, [e.target.name]: e.target.value});
@@ -60,6 +68,7 @@ const EditIn = ({open, setOpen, datatable, cashflow}) => {
         setMethodSelected(methodOption.filter((item) => {
             return cashflow.method && item.value === cashflow.method.id
         }));
+        // eslint-disable-next-line
     }, [cashflow]);
     return <>
         <Modal isOpen={open} toggle={toggle}>
@@ -137,7 +146,7 @@ const EditIn = ({open, setOpen, datatable, cashflow}) => {
                     </div>
                     <div className="form-group">
                         <Button size="lg" className="btn-block" type="submit" color="primary">
-                            SIMPAN
+                            {loading ? <Spinner size="sm" color="light"/> : "SIMPAN" }
                         </Button>
                     </div>
                 </form>

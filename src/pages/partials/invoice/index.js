@@ -7,7 +7,7 @@ import {
     PreviewCard,
     ReactDataTable, toastSuccess
 } from "../../../components";
-import {Badge, Button, ButtonGroup} from "reactstrap";
+import {Badge, Button, ButtonGroup, Spinner} from "reactstrap";
 import {Currency} from "../../../utils/Utils";
 import axios from "axios";
 import HandleError from "../../auth/handleError";
@@ -18,6 +18,12 @@ import moment from "moment";
 import {useNavigate} from "react-router-dom";
 
 const Invoice = ({member, reload, setReload}) => {
+    const [loading, setLoading] = useState({
+        show: '',
+        delete: '',
+        pay: '',
+        notify: ''
+    });
     const [modal, setModal] = useState({
         add: false,
         edit: false,
@@ -73,15 +79,17 @@ const Invoice = ({member, reload, setReload}) => {
                         <Button
                             color="outline-info"
                             onClick={() => handlePaymentShow(row.id)}
+                            disabled={loading.pay === row.id}
                         >
-                            <Icon name="cc-alt"/>
+                            {loading.pay === row.id ? <Spinner size="sm" color="info"/> : <Icon name="cc-alt"/>}
                         </Button>
                     )}
                     <Button
                         color="outline-success"
                         onClick={() => handleNotificationSend(row.id)}
+                        disabled={row.id === loading.notify}
                     >
-                        <Icon name="whatsapp"/>
+                        {row.id === loading.notify ? <Spinner size="sm" color="success"/> : <Icon name="whatsapp"/>}
                     </Button>
                 </ButtonGroup>
             )
@@ -102,14 +110,16 @@ const Invoice = ({member, reload, setReload}) => {
                     <Button
                         color="outline-warning"
                         onClick={() => handleInvoiceShow(row.id)}
+                        disabled={row.id === loading.show}
                     >
-                        <Icon name="edit"/>
+                        {row.id === loading.show ? <Spinner size="sm" color="warning"/> : <Icon name="edit"/>}
                     </Button>
                     <Button
                         color="outline-danger"
                         onClick={() => handleInvoiceDelete(row.id)}
+                        disabled={row.id === loading.delete}
                     >
-                        <Icon name="trash"/>
+                        {row.id === loading.delete ? <Spinner size="sm" color="danger"/> : <Icon name="trash"/>}
                     </Button>
                 </ButtonGroup>
             )
@@ -120,45 +130,85 @@ const Invoice = ({member, reload, setReload}) => {
             params: {
                 member: member.id
             },
-        })
-            .then(resp => setInvoices(resp.data.result))
-            .catch(error => HandleError(error));
+        }).then(resp => {
+            setInvoices(resp.data.result);
+        }).catch(error => HandleError(error));
     }
     const handleInvoiceShow = async (id) => {
-        await axios.get(`/invoice/${id}`, {}).then(resp => {
+        setLoading({
+            ...loading, show: id
+        })
+        await axios.get(`/invoice/${id}`).then(resp => {
             setInvoice(resp.data.result);
             setModal({
-                add: false,
-                edit: true,
-                pay: false
+                ...modal, edit: true
             });
-        }).catch(error => HandleError(error));
+            setLoading({
+                ...loading, show: ''
+            });
+        }).catch(error => {
+            HandleError(error);
+            setLoading({
+                ...loading, show: ''
+            });
+        });
     }
     const handleInvoiceDelete = async (id) => {
-        await axios.delete(`/invoice/${id}`, {}).then(resp => {
+        setLoading({
+            ...loading, delete: id
+        })
+        await axios.delete(`/invoice/${id}`).then(resp => {
             toastSuccess(resp.data.message);
             setReload(true);
-        }).catch(error => HandleError(error));
+            setLoading({
+                ...loading, delete: ''
+            })
+        }).catch(error => {
+            HandleError(error);
+            setLoading({
+                ...loading, delete: ''
+            })
+        });
     }
     const handlePaymentShow = async (id) => {
+        setLoading({
+            ...loading, pay: id
+        });
         await axios.get(`/invoice/${id}`, {}).then(resp => {
             setInvoice(resp.data.result);
             setModal({
-                add: false,
-                edit: false,
-                pay: true
+                ...modal, pay: true
             });
-        }).catch(error => HandleError(error));
+            setLoading({
+                ...loading, pay: ''
+            });
+        }).catch(error => {
+            HandleError(error);
+            setLoading({
+                ...loading, pay: ''
+            });
+        });
     }
     const handleNotificationSend = async (id) => {
-        await axios.post(`/invoice/send-notification/${id}`, null, {}).then(resp => {
+        setLoading({
+            ...loading, notify: id
+        });
+        await axios.post(`/invoice/send-notification/${id}`).then(resp => {
             toastSuccess(resp.data.message);
-        }).catch(error => HandleError(error));
+            setLoading({
+                ...loading, notify: ''
+            });
+        }).catch(error => {
+            HandleError(error);
+            setLoading({
+                ...loading, notify: ''
+            });
+        });
     }
     const navigation = useNavigate();
 
     useEffect(() => {
-        handleInvoiceData().then(() => setReload(false));
+        member.id && handleInvoiceData().then(() => setReload(false));
         // eslint-disable-next-line
     }, [reload, member]);
     return <>
@@ -176,9 +226,7 @@ const Invoice = ({member, reload, setReload}) => {
                         <Button
                             color="secondary"
                             onClick={() => setModal({
-                                add: true,
-                                edit: false,
-                                pay: false
+                                ...modal, add: true
                             })}
                         >
                             <Icon name="plus"/>
@@ -189,7 +237,7 @@ const Invoice = ({member, reload, setReload}) => {
             </BlockBetween>
         </BlockHead>
         <PreviewCard>
-            <ReactDataTable data={invoices} columns={Columns} expandableRows pagination/>
+            <ReactDataTable data={invoices} columns={Columns} expandableRows pagination onLoad={reload}/>
         </PreviewCard>
         <AddInvoice open={modal.add} setOpen={setModal} datatable={setReload} member={member}/>
         <EditInvoice open={modal.edit} setOpen={setModal} datatable={setReload} invoice={invoice}/>

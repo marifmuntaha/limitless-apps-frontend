@@ -1,17 +1,11 @@
 import React from "react";
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from "react-router-dom";
-import axios from "axios";
 import App from "./App";
-
-import "./assets/scss/dashlite.scss";
-
 import reportWebVitals from "./reportWebVitals";
 
-axios.defaults.baseURL = `${process.env.REACT_APP_API_ENDPOINT}`;
-axios.defaults.headers.common['Accept'] = 'application/json'
-axios.defaults.headers.common['Authorization'] = 'Bearer ' + localStorage.getItem('token');
-axios.defaults.headers.post['Content-Type'] = 'application/x-www-form-urlencoded';
+import "./utils/axiosConfig";
+import "./assets/scss/dashlite.scss";
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(

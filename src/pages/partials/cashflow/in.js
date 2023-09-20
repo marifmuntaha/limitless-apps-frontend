@@ -2,14 +2,20 @@ import React, {useEffect, useState} from "react";
 import {Icon, ReactDataTable, toastSuccess} from "../../../components";
 import axios from "axios";
 import HandleError from "../../auth/handleError";
-import {Button, ButtonGroup} from "reactstrap";
+import {Button, ButtonGroup, Spinner} from "reactstrap";
 import {Currency, setDateForPicker} from "../../../utils/Utils";
+import modal from "bootstrap/js/src/modal";
+import moment from "moment";
 const In = ({reload, setReload, setModal, setCashflow, startDate, endDate}) => {
+    const [loading, setLoading] = useState({
+        show: '',
+        delete: ''
+    });
     const [cashflows, setCashflows] = useState([]);
     const Columns = [
         {
             name: "Tanggal",
-            selector: (row) => row.created,
+            selector: (row) => moment(row.created_at, 'YYYY-MM-DD').format('DD/MM/YYYY'),
             sortable: false,
             hide: "sm",
         },
@@ -17,7 +23,9 @@ const In = ({reload, setReload, setModal, setCashflow, startDate, endDate}) => {
             name: "Diskripsi",
             selector: (row) => row.desc,
             sortable: false,
+            grow: 2
         },
+
         {
             name: "Jumlah",
             selector: (row) => Currency(row.amount),
@@ -34,14 +42,17 @@ const In = ({reload, setReload, setModal, setCashflow, startDate, endDate}) => {
                     <Button
                         color="outline-info"
                         onClick={() => handleCashflowShow(row.id)}
+                        disabled={row.id === loading.show}
 
                     >
-                        <Icon name="edit"/></Button>
+                        {row.id === loading.show ? <Spinner size="sm" color="info"/> : <Icon name="edit"/>}
+                    </Button>
                     <Button
                         color="outline-danger"
                         onClick={() => handleCashflowDelete(row.id)}
+                        disabled={row.id === loading.delete}
                     >
-                        <Icon name="trash"/>
+                        {row.id === loading.delete ? <Spinner size="sm" color="danger"/> : <Icon name="trash"/>}
                     </Button>
                 </ButtonGroup>
             )
@@ -54,31 +65,52 @@ const In = ({reload, setReload, setModal, setCashflow, startDate, endDate}) => {
                 start: setDateForPicker(startDate),
                 end: setDateForPicker(endDate),
             },
-        })
-            .then(resp => setCashflows(resp.data.result))
-            .catch(error => HandleError(error));
+        }).then(resp => {
+            setCashflows(resp.data.result);
+        }).catch(error => HandleError(error));
     }
     const handleCashflowShow = async (id) => {
-        await axios.get(`/cashflow/${id}`, {}).then(resp => {
+        setLoading({
+            ...loading, show: id
+        });
+        await axios.get(`/cashflow/${id}`).then(resp => {
             setCashflow(resp.data.result);
             setModal({
-                add: false,
-                edit: true
-            })
-        }).catch(error => HandleError(error));
+                ...modal, edit: true
+            });
+            setLoading({
+                ...loading, show: ''
+            });
+        }).catch(error => {
+            HandleError(error);
+            setLoading({
+                ...loading, show: ''
+            });
+        });
     }
     const handleCashflowDelete = async (id) => {
-        await axios.delete(`/cashflow/${id}`, {}).then(resp => {
+        setLoading({
+            ...loading, delete: id
+        });
+        await axios.delete(`/cashflow/${id}`).then(resp => {
             toastSuccess(resp.data.message);
             setReload(true);
-        }).catch(error => HandleError(error));
+            setLoading({
+                ...loading, delete: ''
+            });
+        }).catch(error => {
+            HandleError(error);
+            setLoading({
+                ...loading, delete: ''
+            });
+        });
     }
     useEffect(() => {
         reload && handleCashflowData().then(() => setReload(false));
         // eslint-disable-next-line
     }, [reload, startDate, endDate]);
     return <>
-        <ReactDataTable data={cashflows} columns={Columns} className="nk-tb-list"/>
+        <ReactDataTable data={cashflows} columns={Columns} className="nk-tb-list" onLoad={reload}/>
     </>
 }
 export default In;

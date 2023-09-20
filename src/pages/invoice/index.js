@@ -11,7 +11,7 @@ import {
     PreviewCard,
     ReactDataTable, RSelect, toastSuccess
 } from "../../components";
-import {Badge, Button, ButtonGroup, Col, Row} from "reactstrap";
+import {Badge, Button, ButtonGroup, Col, Row, Spinner} from "reactstrap";
 import axios from "axios";
 import HandleError from "../auth/handleError";
 import {Currency} from "../../utils/Utils";
@@ -65,6 +65,12 @@ const Invoice = () => {
         {value: '3', label: 'Batal'},
         {value: '4', label: 'Jatuh Tempo'},
     ]
+    const [loading, setLoading] = useState({
+        show: '',
+        delete: '',
+        pay: '',
+        notify: ''
+    });
     const navigate = useNavigate();
     const Columns = [
         {
@@ -126,16 +132,18 @@ const Invoice = () => {
                     {row.status === '2' && (
                         <Button
                             color="outline-info"
-                            onClick={(e) => handlePaymentShow(row.id)}
+                            onClick={() => handlePaymentShow(row.id)}
+                            disabled={row.id === loading.pay}
                         >
-                            <Icon name="cc-alt"/>
+                            {row.id === loading.pay ? <Spinner size="sm" color="info"/> :  <Icon name="cc-alt"/>}
                         </Button>
                     )}
                     <Button
                         color="outline-success"
-                        onClick={(e) => handleNotificationSend(row.id)}
+                        onClick={() => handleNotificationSend(row.id)}
+                        disabled={row.id === loading.notify}
                     >
-                        <Icon name="whatsapp"/>
+                        {row.id === loading.notify ? <Spinner size="sm" color="success"/> : <Icon name="whatsapp"/>}
                     </Button>
                 </ButtonGroup>
             )
@@ -158,14 +166,17 @@ const Invoice = () => {
                     <Button
                         color="outline-warning"
                         onClick={() => handleInvoiceShow(row.id)}
+                        disabled={row.id === loading.show}
 
                     >
-                        <Icon name="edit"/></Button>
+                        {row.id === loading.show ? <Spinner size="sm" color="warning"/> : <Icon name="edit"/>}
+                        </Button>
                     <Button
                         color="outline-danger"
                         onClick={() => handleInvoiceDelete(row.id)}
+                        disabled={row.id === loading.delete}
                     >
-                        <Icon name="trash"/>
+                        {row.id === loading.delete ? <Spinner size="sm" color="danger"/> : <Icon name="trash"/>}
                     </Button>
                 </ButtonGroup>
             )
@@ -201,7 +212,7 @@ const Invoice = () => {
                 state = 'warning'
                 break;
             case '3':
-                state = 'grey'
+                state = 'light'
                 break;
             case '4':
                 state = 'danger'
@@ -220,35 +231,75 @@ const Invoice = () => {
         }).catch(error => HandleError(error));
     }
     const handleInvoiceShow = async (id) => {
-        await axios.get(`/invoice/${id}`, {}).then(resp => {
+        setLoading({
+            ...loading, show: id
+        });
+        await axios.get(`/invoice/${id}`).then(resp => {
             setInvoice(resp.data.result);
             setModal({
-                add: false,
-                edit: true,
-                pay: false
+                ...modal, edit: true,
             });
-        }).catch(error => HandleError(error));
+            setLoading({
+                ...loading, show: ''
+            });
+        }).catch(error => {
+            HandleError(error);
+            setLoading({
+                ...loading, show: ''
+            });
+        });
     }
     const handleInvoiceDelete = async (id) => {
-        await axios.delete(`/invoice/${id}`, {}).then(resp => {
+        setLoading({
+            ...loading, delete: id
+        });
+        await axios.delete(`/invoice/${id}`).then(resp => {
             toastSuccess(resp.data.message);
             setReload(true);
-        }).catch(error => HandleError(error));
+            setLoading({
+                ...loading, delete: ''
+            });
+        }).catch(error => {
+            HandleError(error);
+            setLoading({
+                ...loading, delete: ''
+            });
+        });
     }
     const handlePaymentShow = async (id) => {
-        await axios.get(`/invoice/${id}`, {}).then(resp => {
+        setLoading({
+            ...loading, pay: id
+        });
+        await axios.get(`/invoice/${id}`).then(resp => {
             setInvoice(resp.data.result);
             setModal({
-                add: false,
-                edit: false,
-                pay: true
+                ...modal, pay: true
             });
-        }).catch(error => HandleError(error));
+            setLoading({
+                ...loading, pay: ''
+            });
+        }).catch(error => {
+            HandleError(error);
+            setLoading({
+                ...loading, pay: ''
+            });
+        });
     }
     const handleNotificationSend = async (id) => {
-        await axios.post(`/invoice/send-notification/${id}`, null, {}).then(resp => {
+        setLoading({
+            ...loading, notify: id
+        });
+        await axios.post(`/invoice/send-notification/${id}`).then(resp => {
             toastSuccess(resp.data.message);
-        }).catch(error => HandleError(error));
+            setLoading({
+                ...loading, notify: ''
+            });
+        }).catch(error => {
+            HandleError(error);
+            setLoading({
+                ...loading, notify: ''
+            });
+        });
     }
 
     useEffect(() => {
@@ -289,9 +340,7 @@ const Invoice = () => {
                                     <li
                                         className="nk-block-tools-opt"
                                         onClick={() => setModal({
-                                            add: true,
-                                            edit: false,
-                                            pay: false
+                                            ...modal, add: true,
                                         })}
                                     >
                                         <Button color="secondary">
@@ -346,7 +395,7 @@ const Invoice = () => {
                         </Col>
                     </Row>
                 </div>
-                <ReactDataTable data={invoices} columns={Columns} pagination className="nk-tb-list" selectableRows/>
+                <ReactDataTable data={invoices} columns={Columns} pagination className="nk-tb-list" selectableRows onLoad={reload}/>
             </PreviewCard>
             <Add open={modal.add} setOpen={setModal} datatable={setReload}/>
             <Edit open={modal.edit} setOpen={setModal} datatable={setReload} invoice={invoice}/>

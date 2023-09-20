@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from "react";
-import {Button, Col, Label, Modal, ModalBody, ModalHeader, Row} from "reactstrap";
+import {Button, Col, Label, Modal, ModalBody, ModalHeader, Row, Spinner} from "reactstrap";
 import {Icon, RSelect, toastSuccess} from "../../../components";
 import DatePicker from "react-datepicker";
 import {setDateForPicker} from "../../../utils/Utils";
@@ -8,6 +8,7 @@ import HandleError from "../../auth/handleError";
 import moment from "moment";
 
 const Add = ({open, setOpen, datatable, invoice, ...params}) => {
+    const [loading, setLoading] = useState(false);
     const [formDataPayment, setFormDataPayment] = useState({
         invoice: invoice.id || '',
         amount: invoice.amount || 0,
@@ -55,12 +56,8 @@ const Add = ({open, setOpen, datatable, invoice, ...params}) => {
     }
     const handleFormSubmit = async (e) => {
         e.preventDefault();
-        await axios.post(`${process.env.REACT_APP_API_ENDPOINT}/payment`, formDataPayment, {
-            headers: {
-                Accept: 'application/json',
-                Authorization: 'Bearer ' + localStorage.getItem('token')
-            }
-        }).then(resp => {
+        setLoading(true);
+        await axios.post(`${process.env.REACT_APP_API_ENDPOINT}/payment`, formDataPayment).then(resp => {
             toastSuccess(resp.data.message);
             parseInt(invoice.amount) === totalPayment + formDataPayment.amount &&
             axios.put(`${process.env.REACT_APP_API_ENDPOINT}/invoice/${invoice.id}`, {
@@ -71,30 +68,32 @@ const Add = ({open, setOpen, datatable, invoice, ...params}) => {
                 amount: invoice.amount,
                 status: '1',
                 due: invoice.due,
-            }, {
-                headers: {
-                    Accept: 'application/json',
-                    Authorization: 'Bearer ' + localStorage.getItem('token')
-                }
             }).then(resp => {
                 toastSuccess('Terimakasih, tagihan telah lunas');
                 toggle();
                 datatable(true);
                 params.setReload && params.setReload(true);
-            }).catch(error => HandleError(error));
+                setLoading(false);
+            }).catch(error => {
+                HandleError(error);
+                setLoading(false);
+            });
             axios.post(`${process.env.REACT_APP_API_ENDPOINT}/cashflow`, {
                 payment: resp.data.result.id,
                 type: '1',
                 desc: resp.data.result.invoices.desc + '#' + resp.data.result.invoices.members.name,
                 amount: resp.data.result.amount,
                 method: resp.data.result.method,
-            }, {
-                headers: {
-                    Accept: 'application/json',
-                    Authorization: 'Bearer ' + localStorage.getItem('token')
-                }
-            }).catch(error => HandleError(error));
-        }).catch(error => HandleError(error));
+            }).then(() => {
+                setLoading(false);
+            }).catch(error => {
+                HandleError(error);
+                setLoading(false);
+            });
+        }).catch(error => {
+            HandleError(error);
+            setLoading(false);
+        });
     }
     const toggle = () => {
         setOpen({
@@ -209,7 +208,7 @@ const Add = ({open, setOpen, datatable, invoice, ...params}) => {
                     </div>
                     <div className="form-group">
                         <Button size="lg" className="btn-block" type="submit" color="primary">
-                            SIMPAN
+                            {loading ? <Spinner size="sm" color="light"/> : "SIMPAN" }
                         </Button>
                     </div>
                 </form>

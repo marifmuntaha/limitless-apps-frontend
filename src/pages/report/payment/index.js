@@ -17,6 +17,7 @@ import HandleError from "../../auth/handleError";
 import {Currency, setDateForPicker} from "../../../utils/Utils";
 
 const Payment = () => {
+    const [reload, setReload] = useState(true);
     const [startDate, setStartDate] = useState(moment().startOf('month').toDate());
     const [endDate, setEndDate] = useState(moment().endOf('month').toDate());
     const [methodOption, setMethodOption] = useState([]);
@@ -59,14 +60,14 @@ const Payment = () => {
             hide: 370,
         },
     ];
-    const handleMethodData = async () => {
+    const handleMethodOption = async () => {
         await axios.get(`/account`, {
             params: {
                 type: 'select'
             }
-        })
-            .then(resp => setMethodOption(resp.data.result))
-            .catch(error => HandleError(error));
+        }).then(resp => {
+            setMethodOption(resp.data.result);
+        }).catch(error => HandleError(error));
     }
     const handlePaymentData = async () => {
         await axios.get(`/payment`, {
@@ -75,17 +76,19 @@ const Payment = () => {
                 end: setDateForPicker(endDate),
                 account: methodSelected.value
             }
-        })
-            .then(resp => setPayments(resp.data.result))
-            .catch(error => HandleError(error));
+        }).then(resp => {
+            setPayments(resp.data.result);
+        }).catch(error => {
+            HandleError(error);
+        });
     }
     useEffect(() => {
-        handleMethodData().then();
+        handleMethodOption().then();
     }, []);
     useEffect(() => {
-        handlePaymentData().then();
+        reload && handlePaymentData().then(() => setReload(false));
         // eslint-disable-next-line
-    }, [startDate, endDate, methodSelected]);
+    }, [reload]);
     return <>
         <Head title="Laporan Pembayaran"/>
         <Content>
@@ -117,6 +120,7 @@ const Payment = () => {
                                     selected={startDate}
                                     onChange={(e) => {
                                         setStartDate(e);
+                                        setReload(true);
                                     }}
                                     className="form-control date-picker"
                                 />{" "}
@@ -129,6 +133,7 @@ const Payment = () => {
                                     selected={endDate}
                                     onChange={(e) => {
                                         setEndDate(e);
+                                        setReload(true);
                                     }}
                                     className="form-control date-picker"
                                 />{" "}
@@ -140,6 +145,7 @@ const Payment = () => {
                                     options={methodOption}
                                     onChange={(e) => {
                                         setMethodSelected(e);
+                                        setReload(true);
                                     }}
                                     value={methodSelected}
                                     placeholder="Pilih Metode Pembayaran"
@@ -148,7 +154,7 @@ const Payment = () => {
                         </Col>
                     </Row>
                 </div>
-                <ReactDataTable data={payments} columns={Columns} pagination actions className="nk-tb-list"/>
+                <ReactDataTable data={payments} columns={Columns} pagination actions className="nk-tb-list" onLoad={reload}/>
             </PreviewCard>
         </Content>
     </>

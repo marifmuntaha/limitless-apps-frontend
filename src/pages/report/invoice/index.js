@@ -19,6 +19,7 @@ import axios from "axios";
 import HandleError from "../../auth/handleError";
 
 const Invoice = () => {
+    const [reload, setReload] = useState(true);
     const [startDate, setStartDate] = useState(moment().startOf('month').toDate());
     const [endDate, setEndDate] = useState(moment().endOf('month').toDate());
     const [invoices, setInvoices] = useState([]);
@@ -144,9 +145,9 @@ const Invoice = () => {
         }).catch(error => HandleError(error));
     }
     useEffect(() => {
-        handleInvoiceData().then();
+        reload && handleInvoiceData().then(() => setReload(false));
         // eslint-disable-next-line
-    }, [startDate, endDate, statusSelected]);
+    }, [reload]);
     return <>
         <Head title="Laporan Tagihan"/>
         <Content>
@@ -178,6 +179,7 @@ const Invoice = () => {
                                     selected={startDate}
                                     onChange={(e) => {
                                         setStartDate(e);
+                                        setReload(true);
                                     }}
                                     className="form-control date-picker"
                                 />{" "}
@@ -190,6 +192,7 @@ const Invoice = () => {
                                     selected={endDate}
                                     onChange={(e) => {
                                         setEndDate(e);
+                                        setReload(true);
                                     }}
                                     className="form-control date-picker"
                                 />{" "}
@@ -201,6 +204,7 @@ const Invoice = () => {
                                     options={statusOption}
                                     onChange={(e) => {
                                         setStatusSelected(e);
+                                        setReload(true);
                                     }}
                                     value={statusSelected}
                                     placeholder="Pilih Status"
@@ -209,7 +213,7 @@ const Invoice = () => {
                         </Col>
                     </Row>
                 </div>
-                <ReactDataTable data={invoices} columns={Columns} pagination actions className="nk-tb-list"/>
+                <ReactDataTable data={invoices} columns={Columns} pagination actions className="nk-tb-list" onLoad={reload}/>
             </PreviewCard>
         </Content>
     </>

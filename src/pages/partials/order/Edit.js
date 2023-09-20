@@ -1,4 +1,4 @@
-import {Button, Col, Label, Modal, ModalBody, ModalHeader, Row} from "reactstrap";
+import {Button, Col, Label, Modal, ModalBody, ModalHeader, Row, Spinner} from "reactstrap";
 import {Icon, RSelect, toastSuccess} from "../../../components";
 import React, {useEffect, useState} from "react";
 import axios from "axios";
@@ -8,6 +8,7 @@ import moment from "moment";
 import {setDateForPicker} from "../../../utils/Utils";
 
 const Edit = ({open, setOpen, datatable, order}) => {
+    const [loading, setLoading] = useState(false);
     const [due, setDue] = useState(moment(order.due, 'YYYY-MM-DD').toDate());
     const [formData, setFormData] = useState({
         id: '',
@@ -52,12 +53,17 @@ const Edit = ({open, setOpen, datatable, order}) => {
         setFormData({...formData, [e.target.name]: e.target.value});
     }
     const handleFormSubmit = async (e) => {
+        setLoading(true);
         e.preventDefault();
-        await axios.put(`/order/${formData.id}`, formData, {}).then(resp => {
+        await axios.put(`/order/${formData.id}`, formData).then(resp => {
             toastSuccess(resp.data.message);
             toggle();
             datatable(true);
-        }).catch(error => HandleError(error));
+            setLoading(false);
+        }).catch(error => {
+            HandleError(error);
+            setLoading(false);
+        });
     }
     const toggle = () => {
         setOpen({
@@ -199,8 +205,8 @@ const Edit = ({open, setOpen, datatable, order}) => {
                         </div>
                     </div>
                     <div className="form-group">
-                        <Button size="lg" className="btn-block" type="submit" color="primary">
-                            SIMPAN
+                        <Button size="lg" className="btn-block" type="submit" color="primary" disabled={loading}>
+                            {loading ? <Spinner size="sm" color="light"/> : "SIMPAN" }
                         </Button>
                     </div>
                 </form>

@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from "react";
-import {Button, Label, Modal, ModalBody, ModalHeader} from "reactstrap";
+import {Button, Label, Modal, ModalBody, ModalHeader, Spinner} from "reactstrap";
 import {setDateForPicker} from "../../utils/Utils";
 import moment from "moment/moment";
 import {Icon, RSelect, toastSuccess} from "../../components";
@@ -8,6 +8,7 @@ import axios from "axios";
 import HandleError from "../auth/handleError";
 
 const AddOut = ({open, setOpen, datatable}) => {
+    const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         created_at: moment().format('YYYY-MM-DD'),
         type: '2',
@@ -23,11 +24,16 @@ const AddOut = ({open, setOpen, datatable}) => {
     }
     const handleFormSubmit = async (e) => {
         e.preventDefault();
-        await axios.post(`/cashflow`, formData, {}).then(resp => {
+        setLoading(true);
+        await axios.post(`/cashflow`, formData).then(resp => {
             toastSuccess(resp.data.message);
             toggle();
             datatable(true);
-        }).catch(error => HandleError(error));
+            setLoading(false);
+        }).catch(error => {
+            HandleError(error);
+            setLoading(false);
+        });
     }
     const handleMethodData = async () => {
         await axios.get(`/account`, {
@@ -124,7 +130,7 @@ const AddOut = ({open, setOpen, datatable}) => {
                     </div>
                     <div className="form-group">
                         <Button size="lg" className="btn-block" type="submit" color="primary">
-                            SIMPAN
+                            {loading ? <Spinner size="sm" color="light"/> : "SIMPAN" }
                         </Button>
                     </div>
                 </form>

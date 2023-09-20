@@ -27,7 +27,6 @@ const Notification = () => {
     });
     const handleNotificationData = async () => {
         await axios.get('/auth/notification').then(resp => {
-            console.log(resp.data);
         })
     }
     useEffect(() => {

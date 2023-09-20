@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from "react";
-import {Button, Col, Label, Modal, ModalBody, ModalHeader, Row} from "reactstrap";
+import {Button, Col, Label, Modal, ModalBody, ModalHeader, Row, Spinner} from "reactstrap";
 import {Icon, RSelect, toastSuccess} from "../../components";
 import DatePicker from "react-datepicker";
 import {setDateForPicker} from "../../utils/Utils";
@@ -8,6 +8,7 @@ import HandleError from "../auth/handleError";
 import moment from "moment";
 
 const Edit = ({open, setOpen, datatable, invoice}) => {
+    const [loading, setLoading] = useState(false);
     const [due, setDue] = useState(moment().toDate());
     const [productSelected, setProductSelected] = useState([]);
     const [productOption, setProductOption] = useState([]);
@@ -63,11 +64,16 @@ const Edit = ({open, setOpen, datatable, invoice}) => {
     }
     const handleFormSubmit = async (e) => {
         e.preventDefault();
-        await axios.put(`/invoice/${formData.id}`, formData, {}).then(resp => {
+        setLoading(true);
+        await axios.put(`/invoice/${formData.id}`, formData).then(resp => {
             toastSuccess(resp.data.message);
             toggle();
             datatable(true);
-        }).catch(error => HandleError(error));
+            setLoading(false);
+        }).catch(error => {
+            HandleError(error);
+            setLoading(false);
+        });
     }
     const toggle = () => {
         setOpen({
@@ -283,7 +289,7 @@ const Edit = ({open, setOpen, datatable, invoice}) => {
                     </div>
                     <div className="form-group">
                         <Button size="lg" className="btn-block" type="submit" color="primary">
-                            SIMPAN
+                            {loading ? <Spinner size="sm" color="light"/> : "SIMPAN" }
                         </Button>
                     </div>
                 </form>

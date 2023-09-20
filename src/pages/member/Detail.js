@@ -29,7 +29,7 @@ const Detail = () => {
     const {memberID} = useParams();
     const [member, setMember] = useState([]);
     const [sideBar, setSidebar] = useState(false);
-    const [reloadInvoice, setReloadInvoice] = useState(false);
+    const [reloadInvoice, setReloadInvoice] = useState(true);
     const [totalInv, setTotalInv] = useState('');
     const navigate = useNavigate();
     const handleMemberData = async () => {
@@ -42,7 +42,7 @@ const Detail = () => {
             let inv = resp.data.result.invoice || []
             let total = 0;
             inv.map((invoice) => {
-                return total += invoice.status === '1' && parseInt(invoice.amount);
+                return total += invoice.status === '2' && parseInt(invoice.amount);
             })
             setTotalInv(total.toString());
         }).catch(error => HandleError(error));
@@ -204,8 +204,7 @@ const Detail = () => {
                                         </Block>
                                         <div className="nk-divider divider md"></div>
                                         <Block>
-                                            <Invoice member={member} reload={reloadInvoice}
-                                                     setReload={setReloadInvoice}/>
+                                            <Invoice member={member} reload={reloadInvoice} setReload={setReloadInvoice}/>
                                         </Block>
                                     </div>
                                 </div>

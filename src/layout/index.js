@@ -8,31 +8,27 @@ import AppMain from "./global/AppMain";
 import AppWrap from "./global/AppWrap";
 import axios from "axios";
 import Sidebar from "./sidebar";
+import HandleError from "../pages/auth/handleError";
 
 const Layout = ({title, ...props}) => {
     const [auth, setAuth] = useState(false);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [user, setUser] = useState([]);
     const handleAuthCheck = async () => {
         const token = localStorage.getItem('token');
         if (!token) {
             setAuth(false);
-            setLoading(true);
         } else {
-            await axios.get("/auth/user-info", {
-            }).then(resp => {
+            await axios.get("/auth/user-info").then(resp => {
                 setAuth(true);
                 setUser(resp.data.result);
-                setLoading(true);
-            }).catch(error => {
-                setLoading(true);
-            })
+            }).catch(error => HandleError(error));
         }
     }
     useEffect(() => {
-        handleAuthCheck().then();
+        handleAuthCheck().then(() => setLoading(false));
     }, []);
-    return loading && (
+    return !loading && (
         <>
             <Head title={!title && 'Memuat...'}/>
             {auth ? (

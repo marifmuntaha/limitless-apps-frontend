@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from "react";
-import {Button, Label, Modal, ModalBody, ModalHeader} from "reactstrap";
+import {Button, Label, Modal, ModalBody, ModalHeader, Spinner} from "reactstrap";
 import {setDateForPicker} from "../../utils/Utils";
 import moment from "moment/moment";
 import {Icon, RSelect, toastSuccess} from "../../components";
@@ -8,6 +8,7 @@ import axios from "axios";
 import HandleError from "../auth/handleError";
 
 const AddIn = ({open, setOpen, datatable}) => {
+    const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         created_at: moment().format('YYYY-MM-DD'),
         type: '1',
@@ -22,21 +23,26 @@ const AddIn = ({open, setOpen, datatable}) => {
         setFormData({...formData, [e.target.name]: e.target.value});
     }
     const handleFormSubmit = async (e) => {
+        setLoading(true);
         e.preventDefault();
-        await axios.post(`/cashflow`, formData, {}).then(resp => {
+        await axios.post(`/cashflow`, formData).then(resp => {
             toastSuccess(resp.data.message);
             toggle();
-            datatable(true);
-        }).catch(error => HandleError(error));
+            datatable(false);
+            setLoading(false);
+        }).catch(error => {
+            HandleError(error);
+            setLoading(false);
+        });
     }
     const handleMethodData = async () => {
         await axios.get(`/account`, {
             params: {
                 type: 'select'
             },
-        })
-            .then(resp => setMethodOption(resp.data.result))
-            .catch(error => HandleError(error));
+        }).then(resp => {
+            setMethodOption(resp.data.result);
+        }).catch(error => HandleError(error));
     }
     useEffect(() => {
         handleMethodData().then();
@@ -124,7 +130,7 @@ const AddIn = ({open, setOpen, datatable}) => {
                     </div>
                     <div className="form-group">
                         <Button size="lg" className="btn-block" type="submit" color="primary">
-                            SIMPAN
+                            {loading ? <Spinner size="sm" color="light"/> : "SIMPAN" }
                         </Button>
                     </div>
                 </form>
