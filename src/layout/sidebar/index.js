@@ -7,7 +7,7 @@ import Toggle from "./Toggle";
 
 import {useTheme, useThemeUpdate} from '../provider/Theme';
 
-const Sidebar = ({fixed, className, ...props}) => {
+const Sidebar = ({fixed, className}) => {
     const theme = useTheme();
     const themeUpdate = useThemeUpdate();
 
@@ -49,7 +49,7 @@ const Sidebar = ({fixed, className, ...props}) => {
                 </div>
                 <div className="nk-sidebar-content" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
                     <SimpleBar className="nk-sidebar-menu">
-                        <Menu user={props.user}/>
+                        <Menu/>
                     </SimpleBar>
                 </div>
             </div>

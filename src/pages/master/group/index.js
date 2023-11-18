@@ -9,21 +9,17 @@ import {
     BlockTitle,
     Icon,
     PreviewCard,
-    ReactDataTable, toastSuccess
+    ReactDataTable
 } from "../../../components";
 import {Button, ButtonGroup, Spinner} from "reactstrap";
-import axios from "axios";
-import HandleError from "../../auth/handleError";
 import Add from "./Add";
 import {ToastContainer} from "react-toastify";
 import Edit from "./Edit";
+import {actionType, Dispatch} from "../../../reducer";
 
 const Group = () => {
     const [reload, setReload] = useState(true);
-    const [loading, setLoading] = useState({
-        show: '',
-        delete: ''
-    });
+    const [loading, setLoading] = useState(0);
     const [modal, setModal] = useState({
         add: false,
         edit: false
@@ -40,79 +36,52 @@ const Group = () => {
             name: "Diskripsi",
             selector: (row) => row.desc,
             sortable: true,
+            hide: "sm"
         },
         {
             name: "Aksi",
             selector: (row) => row.id,
             sortable: false,
-            hide: "sm",
             cell: (row) => (
                 <ButtonGroup size="sm">
                     <Button
                         color="outline-info"
-                        onClick={() => handleGroupShow(row.id)}
-                        disabled={loading.show === row.id}
+                        onClick={() => {
+                            setGroup(row);
+                            setModal({
+                                add: false,
+                                edit: true
+                            })
+                        }}
                     >
-                        {loading.show === row.id ? <Spinner size="sm" color="light"/> : <Icon name="edit"/> }
+                        <Icon name="edit"/>
                     </Button>
                     <Button
                         color="outline-danger"
-                        onClick={() => handleGroupDelete(row.id)}
-                        disabled={loading.delete === row.id}
+                        onClick={() => Dispatch(actionType.CATEGORY_DELETE, {
+                            id: row.id,
+                            setLoading: setLoading,
+                            setReload: setReload
+                        })}
+                        disabled={loading === row.id}
                     >
-                        {loading.delete === row.id ? <Spinner size="sm" color="light"/> : <Icon name="trash"/> }
+                        {loading === row.id ? <Spinner size="sm" color="light"/> : <Icon name="trash"/> }
                     </Button>
                 </ButtonGroup>
             )
         },
     ];
-    const handleGroupsData = async () => {
-        await axios.get('/category').then(resp => {
-            setGroups(resp.data.result)
-        }).catch(error => HandleError(error));
-    }
-    const handleGroupShow = async (id) => {
-        setLoading({
-            show: id,
-            delete: ''
-        });
-        await axios.get(`/category/${id}`).then(resp => {
-            setGroup(resp.data.result);
-            setModal({
-                add: false,
-                edit: true
-            });
-            setLoading({
-                show: '',
-                delete: ''
-            })
-        }).catch(error => HandleError(error));
-    }
-    const handleGroupDelete = async (id) => {
-        setLoading({
-            show: '',
-            delete: id
-        });
-        await axios.delete(`/category/${id}`).then(resp => {
-            toastSuccess(resp.data.message);
-            setReload(true);
-            setLoading({
-                show: '',
-                delete: ''
-            });
-        }).catch(error => HandleError(error));
-    }
     useEffect(() => {
-        reload && handleGroupsData().then(() => setReload(false));
+        reload && Dispatch(actionType.CATEGORY_GET, {
+            setData: setGroups
+        }).then(() => setReload(false));
     }, [reload])
     return <>
         <Head title="Grup"/>
         <Content page="component">
             <BlockHead size="lg" wide="sm">
                 <BlockHeadContent>
-                    <BackTo link="/" icon="arrow-left">
-                        DASHBOARD
-                    </BackTo>
+                    <BackTo link="/" icon="arrow-left">DASHBOARD</BackTo>
                 </BlockHeadContent>
             </BlockHead>
             <BlockHead>
@@ -141,7 +110,7 @@ const Group = () => {
                 </BlockBetween>
             </BlockHead>
             <PreviewCard>
-                <ReactDataTable data={groups} columns={Columns} expandableRows pagination onLoad={reload}/>
+                <ReactDataTable data={groups} columns={Columns} pagination onLoad={reload}/>
             </PreviewCard>
             <Add open={modal.add} setOpen={setModal} datatable={setReload}/>
             <Edit open={modal.edit} setOpen={setModal} datatable={setReload} group={group}/>

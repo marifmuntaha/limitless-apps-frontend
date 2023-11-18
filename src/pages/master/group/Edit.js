@@ -1,40 +1,31 @@
 import React, {useEffect, useState} from "react";
 import {Button, Label, Modal, ModalBody, ModalHeader, Spinner} from "reactstrap";
-import {Icon, toastSuccess} from "../../../components";
-import axios from "axios";
-import HandleError from "../../auth/handleError";
+import {Icon} from "../../../components";
+import {actionType, Dispatch} from "../../../reducer";
 const Edit = ({open, setOpen, datatable, group}) => {
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
-        id: '',
+        id: 0,
         name: '',
         desc: ''
     });
     const handleFormInput = (e) => {
         setFormData({...formData, [e.target.name]: e.target.value});
     }
-    const handleFormSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        await axios.put(`/category/${formData.id}`, formData).then(resp => {
-            toastSuccess(resp.data.message);
-            setLoading(false);
-            datatable(true);
-            toggle();
-        }).catch(error => {
-            HandleError(error);
-            setLoading(false);
-        });
-    }
     const toggle = () => {
         setOpen({
             add: false,
             edit: false
         });
+        setFormData({
+            id: 0,
+            name: '',
+            desc: ''
+        });
     }
     useEffect(() => {
         setFormData({
-            id: group.id || '',
+            id: group.id || 0,
             name: group.name || '',
             desc: group.desc || ''
         })
@@ -52,7 +43,15 @@ const Edit = ({open, setOpen, datatable, group}) => {
                 UBAH
             </ModalHeader>
             <ModalBody>
-                <form onSubmit={(e) => handleFormSubmit(e)}>
+                <form onSubmit={(e) => {
+                    e.preventDefault();
+                    Dispatch(actionType.CATEGORY_UPDATE, {
+                        formData: formData,
+                        setLoading: setLoading,
+                        toggle: toggle,
+                        setReload: datatable
+                    }).then();
+                }}>
                     <div className="form-group">
                         <Label htmlFor="name" className="form-label">
                             Nama Grup

@@ -1,8 +1,7 @@
 import {Button, Col, Label, Modal, ModalBody, ModalHeader, Row, Spinner} from "reactstrap";
-import {Icon, RSelect, toastSuccess} from "../../components";
+import {Icon, RSelect} from "../../components";
 import React, {useState} from "react";
-import axios from "axios";
-import HandleError from "../auth/handleError";
+import {actionType, Dispatch} from "../../reducer";
 
 const Add = ({open, setOpen, datatable}) => {
     const [loading, setLoading] = useState(false);
@@ -23,25 +22,18 @@ const Add = ({open, setOpen, datatable}) => {
     const handleFormInput = (e) => {
         setFormData({...formData, [e.target.name]: e.target.value});
     }
-    const handleFormSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        await axios.post(`/product`, formData, {})
-            .then(resp => {
-                toastSuccess(resp.data.message);
-                toggle();
-                datatable(true);
-                setLoading(false)
-            })
-            .catch(error => {
-                HandleError(error);
-                setLoading(false);
-            });
-    }
     const toggle = () => {
         setOpen({
             add: false,
             edit: false
+        });
+        setFormData({
+            code: '',
+            name: '',
+            desc: '',
+            price: '',
+            cycle: '',
+            image: ''
         });
     };
 
@@ -58,7 +50,15 @@ const Add = ({open, setOpen, datatable}) => {
                 TAMBAH PRODUK
             </ModalHeader>
             <ModalBody>
-                <form onSubmit={(e) => handleFormSubmit(e)}>
+                <form onSubmit={(e) => {
+                    e.preventDefault();
+                    Dispatch(actionType.PRODUCT_STORE, {
+                        formData: formData,
+                        setLoading: setLoading,
+                        toggle: toggle,
+                        setReload: datatable
+                    }).then();
+                }}>
                     <div className="form-group">
                         <Label htmlFor="code" className="form-label">
                             Kode Produk

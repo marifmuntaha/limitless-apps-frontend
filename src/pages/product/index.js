@@ -13,17 +13,12 @@ import {
 import {Badge, Button, ButtonGroup, Spinner} from "reactstrap";
 import Add from "./Add";
 import {ToastContainer} from "react-toastify";
-import axios from "axios";
-import handleError from "../auth/handleError";
-import HandleError from "../auth/handleError";
 import Edit from "./Edit";
 import {Currency} from "../../utils/Utils";
+import {actionType, Dispatch} from "../../reducer";
 
 const Product = () => {
-    const [loading, setLoading] = useState({
-        show: '',
-        delete: ''
-    });
+    const [loading, setLoading] = useState(0);
     const [products, setProducts] = useState();
     const [product, setProduct] = useState([]);
     const [reload, setReload] = useState(true);
@@ -36,6 +31,7 @@ const Product = () => {
             name: "Kode Produk",
             selector: (row) => row.code,
             sortable: true,
+            hide: "sm"
         },
         {
             name: "Nama Produk",
@@ -46,7 +42,7 @@ const Product = () => {
             name: "Siklus Tagihan",
             selector: (row) => row.cycle,
             sortable: false,
-            hide: 370,
+            hide: "sm",
             cell: (row) => (
                 <Badge className="badge-dot" color="success">
                     {row.cycle === '1' ? 'Bulanan' : row.cycle === '2' ? '3 Bulan' : row.cycle === '3' ? '6 Bulan' : 'Tahunan'}
@@ -63,80 +59,48 @@ const Product = () => {
             name: "Aksi",
             selector: (row) => row.id,
             sortable: false,
-            hide: "sm",
             cell: (row) => (
                 <ButtonGroup size="sm">
                     <Button
                         color="outline-info"
-                        onClick={() => handleProductShow(row.id)}
-                        disabled={row.id === loading.show}
-
+                        onClick={() => {
+                            setProduct(row);
+                            setModal({
+                                add: false,
+                                edit: true
+                            })
+                        }}
                     >
-                        {row.id === loading.show ? <Spinner size="sm" color="info"/> : <Icon name="edit"/> }
+                        <Icon name="edit"/>
                     </Button>
                     <Button
                         color="outline-danger"
-                        onClick={() => handleProductDelete(row.id)}
-                        disabled={row.id === loading.delete}
+                        onClick={() => Dispatch(actionType.PRODUCT_DELETE, {
+                            id: row.id,
+                            setLoading: setLoading,
+                            setReload: setReload
+                        })}
+                        disabled={loading === row.id}
                     >
-                        {row.id === loading.delete ? <Spinner size="sm" color="danger"/> : <Icon name="trash"/> }
+                        {loading === row.id ? <Spinner size="sm" color="danger"/> : <Icon name="trash"/>}
                     </Button>
                 </ButtonGroup>
             )
         },
     ];
-    const handleProductsData = async () => {
-        await axios.get(`/product`, {})
-            .then(resp => setProducts(resp.data.result))
-            .catch(error => handleError(error));
-    }
-    const handleProductShow = async (id) => {
-        setLoading({
-            show: id,
-            delete: ''
-        });
-        await axios.get(`/product/${id}`, {})
-            .then(resp => {
-                setProduct(resp.data.result);
-                setModal({
-                    add: false,
-                    edit: true
-                });
-                setLoading({
-                    show: '',
-                    delete: ''
-                })
-            })
-            .catch(error => handleError(error));
-    }
-    const handleProductDelete = async (id) => {
-        setLoading({
-            show: '',
-            delete: id
-        });
-        await axios.delete(`/product/${id}`, {})
-            .then(resp => {
-                toastSuccess(resp.data.message);
-                setReload(true);
-                setLoading({
-                    show: '',
-                    delete: ''
-                })
-            })
-            .catch(error => HandleError(error));
-    }
 
     useEffect(() => {
-        reload === true &&
-        handleProductsData().then(() => setReload(false))
+        reload && Dispatch(actionType.PRODUCT_GET, {
+            setData: setProducts
+        }).then(() => setReload(false));
     }, [reload]);
     return <>
         <Head title="Produk"/>
         <Content page="component">
             <BlockHead size="lg" wide="sm">
                 <BlockHeadContent>
-                    <BackTo link="/components" icon="arrow-left">
-                        PRODUK
+                    <BackTo link="/" icon="arrow-left">
+                        DASHBOARD
                     </BackTo>
                 </BlockHeadContent>
             </BlockHead>
@@ -166,7 +130,7 @@ const Product = () => {
                 </BlockBetween>
             </BlockHead>
             <PreviewCard>
-                <ReactDataTable data={products} columns={Columns} expandableRows pagination onLoad={reload}/>
+                <ReactDataTable data={products} columns={Columns} pagination onLoad={reload}/>
             </PreviewCard>
             <Add open={modal.add} setOpen={setModal} datatable={setReload}/>
             <Edit open={modal.edit} setOpen={setModal} datatable={setReload} product={product}/>

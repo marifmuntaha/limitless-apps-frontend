@@ -18,6 +18,7 @@ import {Link} from "react-router-dom";
 import axios from "axios";
 import handleError from "./handleError";
 import {ToastContainer} from "react-toastify";
+import {actionType, Dispatch} from "../../reducer";
 
 const Login = () => {
     const [loading, setLoading] = useState(false);
@@ -28,22 +29,6 @@ const Login = () => {
     });
     const handleInputForm = (e) => {
         setFormData({...formData, [e.target.name]: e.target.value})
-    }
-
-    const handleFormSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        await axios.post("/auth/login", formData).then(resp => {
-            setLoading(false);
-            localStorage.setItem('token', resp.data.result.token);
-            toastSuccess('Berhasil masuk, anda akan dialihkan dalam 2 detik')
-            setTimeout(() => {
-                window.location.href = process.env.PUBLIC_URL + "/";
-            }, 2000);
-        }).catch(error => {
-            handleError(error);
-            setLoading(false);
-        });
     }
     return <>
         <Head title="Masuk"/>
@@ -64,7 +49,21 @@ const Login = () => {
                     </BlockContent>
                 </BlockHead>
                 <Form
-                    className="is-alter" onSubmit={(e) => handleFormSubmit(e)}>
+                    className="is-alter" onSubmit={(e) => {
+                    e.preventDefault();
+                    Dispatch(actionType.AUTH_LOGIN, {
+                        setLoading: setLoading,
+                        formData: formData
+                    }).then(resp => {
+                        if (resp !== undefined) {
+                            localStorage.setItem('token', resp.data.result.token);
+                            toastSuccess(resp.data.message);
+                            setTimeout(() => {
+                                window.location.href = process.env.PUBLIC_URL + "/";
+                            }, 2000);
+                        }
+                    })
+                }}>
                     <div className="form-group">
                         <div className="form-label-group">
                             <label className="form-label" htmlFor="email">

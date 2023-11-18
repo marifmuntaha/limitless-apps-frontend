@@ -1,8 +1,7 @@
 import React, {useEffect, useState} from "react";
-import axios from "axios";
-import {Icon, toastSuccess} from "../../../components";
-import HandleError from "../../auth/handleError";
+import {Icon} from "../../../components";
 import {Button, Label, Modal, ModalBody, ModalHeader, Spinner} from "reactstrap";
+import {actionType, Dispatch} from "../../../reducer";
 
 const Edit = ({open, setOpen, datatable, account}) => {
     const [loading, setLoading] = useState(false);
@@ -15,21 +14,6 @@ const Edit = ({open, setOpen, datatable, account}) => {
     });
     const handleFormInput = (e) => {
         setFormData({...formData, [e.target.name]: e.target.value});
-    }
-    const handleFormSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        await axios.put(`/account/${formData.id}`, formData, {})
-            .then(resp => {
-                toastSuccess(resp.data.message);
-                setLoading(false);
-                toggle();
-                datatable(true);
-            })
-            .catch(error => {
-                HandleError(error);
-                setLoading(false);
-            });
     }
     const toggle = () => {
         setOpen({
@@ -66,7 +50,15 @@ const Edit = ({open, setOpen, datatable, account}) => {
                 UBAH
             </ModalHeader>
             <ModalBody>
-                <form onSubmit={(e) => handleFormSubmit(e)}>
+                <form onSubmit={(e) => {
+                    e.preventDefault();
+                    Dispatch(actionType.ACCOUNT_UPDATE, {
+                        formData: formData,
+                        setLoading: setLoading,
+                        toggle: toggle,
+                        setReload: datatable
+                    }).then();
+                }}>
                     <div className="form-group">
                         <Label htmlFor="bank" className="form-label">
                             Nama Bank
@@ -131,7 +123,7 @@ const Edit = ({open, setOpen, datatable, account}) => {
                             color="primary"
                             disabled={loading}
                         >
-                            {loading ? <Spinner size="sm" color="light" /> : 'SIMPAN' }
+                            {loading ? <Spinner size="sm" color="light"/> : 'SIMPAN'}
                         </Button>
                     </div>
                 </form>

@@ -1,9 +1,10 @@
-import React, {useEffect, useState} from "react";
+import React, {useContext, useEffect, useState} from "react";
 import menuAdmin from "./MenuAdmin";
 import menuMember from "./MenuMember";
 import {NavLink, Link} from "react-router-dom";
 import {Icon} from "../../components";
 import classNames from "classnames";
+import {UserContext} from "../../context/UserContext";
 
 let menu = (user) => {
     return user.role === "1" ? menuAdmin : menuMember
@@ -262,9 +263,9 @@ const MenuSub = ({icon, link, text, sub, sidebarToggle, mobileView, ...props}) =
     );
 };
 
-const Menu = ({sidebarToggle, mobileView, user}) => {
+const Menu = ({sidebarToggle, mobileView}) => {
+    const user = useContext(UserContext);
     const [data, setMenuData] = useState(menu(user));
-
     useEffect(() => {
         data.forEach((item, index) => {
             if (item.panel) {

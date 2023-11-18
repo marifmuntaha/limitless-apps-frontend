@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from "react";
+import React, {useContext, useEffect, useState} from "react";
 import Head from "../../layout/head";
 import Content from "../../layout/content";
 import {
@@ -8,36 +8,32 @@ import {
     BlockHeadContent,
     BlockTitle, Icon,
     PreviewCard,
-    ReactDataTable, toastSuccess, UserAvatar
+    ReactDataTable, UserAvatar
 } from "../../components";
 import {
     Button,
     ButtonGroup,
-    DropdownItem,
-    DropdownMenu,
-    DropdownToggle,
-    Spinner,
-    UncontrolledDropdown
+    Spinner
 } from "reactstrap";
 import Add from "./Add";
 import {ToastContainer} from "react-toastify";
-import axios from "axios";
-import HandleError from "../auth/handleError";
 import Edit from "./Edit";
 import {findUpper} from "../../utils/Utils";
 import {useNavigate} from "react-router-dom";
+import {actionType, Dispatch} from "../../reducer";
+import {MemberContext} from "./MemberContext";
+import {InvoiceContext} from "../partials/invoice/InvoiceContext";
+import CategoryDropdown from "../partials/member/CategoryDropdown";
+import StatusDropdown from "../partials/member/StatusDropdown";
 
 const Member = () => {
+    const {member, setMember} = useContext(MemberContext)
+    const {setInvoices} = useContext(InvoiceContext);
     const [sm, updateSm] = useState(false);
-    const [loading, setLoading] = useState({
-        show: '',
-        delete: ''
-    });
+    const [loading, setLoading] = useState(0);
     const [filter, setFilter] = useState('1');
-    const [categoryOption, setCategoryOption] = useState([]);
-    const [categorySelected, setCategorySelected] = useState('');
+    const [category, setCategory] = useState(0);
     const [members, setMembers] = useState([]);
-    const [member, setMember] = useState([]);
     const [reload, setReload] = useState(true);
     const [modal, setModal] = useState({
         add: false,
@@ -49,20 +45,16 @@ const Member = () => {
             name: "Pelanggan",
             selector: (row) => row.name,
             compact: true,
-            grow: 2,
             style: {paddingRight: "20px"},
             cell: (row) => (
                 <div className="user-card mt-2 mb-2">
                     <UserAvatar theme={row.background} text={findUpper(row.name)}></UserAvatar>
                     <div className="user-info">
                         <span className="tb-lead">
-            {row.name}{" "}
+                            {row.name}{" "}
                             <span
-                                className={`dot dot-${
-                                    row.status === "Active" ? "success" : row.status === "Pending" ? "warning" : "danger"
-                                } d-md-none ms-1`}
-                            ></span>
-          </span>
+                                className={`dot dot-${row.status === "Active" ? "success" : row.status === "Pending" ? "warning" : "danger"} d-md-none ms-1`}></span>
+                        </span>
                         <span>{row.user.email}</span>
                     </div>
                 </div>
@@ -84,117 +76,62 @@ const Member = () => {
             name: "Nomor WA",
             selector: (row) => '+62' + row.user.phone,
             sortable: false,
+            hide: "sm"
         },
         {
             name: "Alamat",
             selector: (row) => row.address,
             sortable: false,
-            hide: 370,
+            hide: "sm",
         },
         {
             name: "Aksi",
             selector: (row) => row.id,
             sortable: false,
-            hide: "sm",
             cell: (row) => (
                 <ButtonGroup size="sm">
                     <Button
                         color="outline-info"
                         onClick={() => {
-                            navigate(`${process.env.PUBLIC_URL}/pelanggan/${row.id}`)
+                            setMember(row);
+                            setInvoices(row.invoice);
+                            navigate(`${process.env.PUBLIC_URL}/pelanggan/detail`)
                         }}
 
                     >
                         <Icon name="eye"/></Button>
                     <Button
                         color="outline-warning"
-                        onClick={() => handleMemberShow(row.id)}
-                        disabled={row.id === loading.show}
-
+                        onClick={() => {
+                            setMember(row);
+                            setModal({
+                                add: false,
+                                edit: true
+                            });
+                        }}
                     >
-                        {row.id === loading.show ? <Spinner size="sm" color="warning"/> : <Icon name="edit"/> }
+                        <Icon name="edit"/>
                     </Button>
                     <Button
                         color="outline-danger"
-                        onClick={() => handleMemberDelete(row.id)}
-                        disabled={row.id === loading.delete}
-
+                        onClick={() => Dispatch(actionType.MEMBER_DELETE, {
+                            id: row.id,
+                            setLoading: setLoading,
+                            setReload: setReload
+                        })}
+                        disabled={row.id === loading}
                     >
-                        {row.id === loading.delete ? <Spinner size="sm" color="danger"/> : <Icon name="trash"/> }
+                        {row.id === loading ? <Spinner size="sm" color="danger"/> : <Icon name="trash"/>}
                     </Button>
                 </ButtonGroup>
             )
         },
     ];
-    const handleMemberData = async () => {
-        await axios.get(`/member`, {
-            params: {
-                order: "DESC",
-                status: filter,
-                category: categorySelected
-            },
-        }).then(resp => {
-            setMembers(resp.data.result);
-            setReload(false);
-        }).catch(error => {
-            HandleError(error);
-            setReload(false);
-        });
-    }
-    const handleMemberShow = async (id) => {
-        setLoading({
-            show: id,
-            delete: ''
-        })
-        await axios.get(`/member/${id}`).then(resp => {
-            setMember(resp.data.result);
-            setModal({
-                add: false,
-                edit: true
-            });
-            setLoading({
-                show: '',
-                delete: ''
-            })
-        }).catch(error => {
-            HandleError(error);
-            setLoading({
-                show: '',
-                delete: ''
-            });
-        });
-    }
-    const handleMemberDelete = async (id) => {
-        setLoading({
-            show: '',
-            delete: id
-        });
-        await axios.delete(`/member/${id}`).then(resp => {
-            toastSuccess(resp.data.message);
-            setLoading({
-                show: '',
-                delete: ''
-            });
-            setReload(true);
-        }).catch(error => {
-            HandleError(error);
-            setLoading({
-                show: '',
-                delete: ''
-            });
-        });
-    }
-    const handleCategoryOption = async () => {
-        await axios.get('/category').then(resp => setCategoryOption(resp.data.result))
-            .catch(error => HandleError(error));
-    }
     useEffect(() => {
-        handleCategoryOption().then();
-    }, []);
-    useEffect(() => {
-        reload &&
-        handleMemberData();
-        // eslint-disable-next-line
+        reload && Dispatch(actionType.MEMBER_GET,
+            {setData: setMembers},
+            {order: "DESC", status: filter, category: category, invoice: true}
+        ).then(() => setReload(false));
     }, [reload]);
     return <>
         <Head title="Pelanggan"/>
@@ -226,82 +163,10 @@ const Member = () => {
                             <div className="toggle-expand-content" style={{display: sm ? "block" : "none"}}>
                                 <ul className="nk-block-tools g-3">
                                     <li>
-                                        <UncontrolledDropdown>
-                                            <DropdownToggle tag="a"
-                                                            className="dropdown-toggle btn btn-white btn-dim btn-outline-light">
-                                                <Icon name="filter-alt" className="d-none d-sm-inline"></Icon>
-                                                <span>Grup</span>
-                                                <Icon name="chevron-right" className="dd-indc"></Icon>
-                                            </DropdownToggle>
-                                            <DropdownMenu end>
-                                                <ul className="link-list-opt no-bdr">
-                                                    <li>
-                                                        <DropdownItem
-                                                            tag="a"
-                                                            href="#dropdownitem"
-                                                            onClick={() => {
-                                                                setCategorySelected('');
-                                                                setReload(true);
-                                                            }}
-                                                        >
-                                                            <span>Semua</span>
-                                                        </DropdownItem>
-                                                    </li>
-                                                    {categoryOption.map((category, idx) => (
-                                                        <li key={idx}>
-                                                            <DropdownItem
-                                                                tag="a"
-                                                                href="#dropdownitem"
-                                                                onClick={() => {
-                                                                    setCategorySelected(category.id);
-                                                                    setReload(true);
-                                                                }}
-                                                            >
-                                                                <span>{category.name}</span>
-                                                            </DropdownItem>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </DropdownMenu>
-                                        </UncontrolledDropdown>
+                                        <CategoryDropdown setReload={setReload} setCategory={setCategory}/>
                                     </li>
                                     <li>
-                                        <UncontrolledDropdown>
-                                            <DropdownToggle tag="a"
-                                                            className="dropdown-toggle btn btn-white btn-dim btn-outline-light">
-                                                <Icon name="filter-alt" className="d-none d-sm-inline"></Icon>
-                                                <span>Saring</span>
-                                                <Icon name="chevron-right" className="dd-indc"></Icon>
-                                            </DropdownToggle>
-                                            <DropdownMenu end>
-                                                <ul className="link-list-opt no-bdr">
-                                                    <li>
-                                                        <DropdownItem
-                                                            tag="a"
-                                                            href="#dropdownitem"
-                                                            onClick={() => {
-                                                                setFilter('1');
-                                                                setReload(true);
-                                                            }}
-                                                        >
-                                                            <span>Aktif</span>
-                                                        </DropdownItem>
-                                                    </li>
-                                                    <li>
-                                                        <DropdownItem
-                                                            tag="a"
-                                                            href="#dropdownitem"
-                                                            onClick={() => {
-                                                                setFilter('2');
-                                                                setReload(true);
-                                                            }}
-                                                        >
-                                                            <span>Non Aktif</span>
-                                                        </DropdownItem>
-                                                    </li>
-                                                </ul>
-                                            </DropdownMenu>
-                                        </UncontrolledDropdown>
+                                        <StatusDropdown setReload={setReload} setFilter={setFilter}/>
                                     </li>
                                     <li
                                         className="nk-block-tools-opt"

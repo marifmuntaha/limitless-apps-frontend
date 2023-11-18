@@ -1,8 +1,6 @@
-import React, {useEffect, useState} from "react";
-import {useParams} from "react-router-dom";
+import React, {useContext, useEffect, useState} from "react";
 import Content from "../../layout/content";
 import Head from "../../layout/head";
-import HandleError from "../auth/handleError";
 import Order from "../partials/order";
 import Invoice from "../partials/invoice";
 import {Card, Badge} from "reactstrap";
@@ -23,40 +21,21 @@ import {
 import {useNavigate} from "react-router-dom";
 import {ToastContainer} from "react-toastify";
 import {Currency, monthNames, todaysDate} from "../../utils/Utils";
-import axios from "axios";
+import {MemberContext} from "./MemberContext";
+import {InvoiceContext} from "../partials/invoice/InvoiceContext";
 
 const Detail = () => {
-    const {memberID} = useParams();
-    const [member, setMember] = useState([]);
+    const {member} = useContext(MemberContext);
+    const {unpaidSum} = useContext(InvoiceContext);
     const [sideBar, setSidebar] = useState(false);
     const [reloadInvoice, setReloadInvoice] = useState(true);
-    const [totalInv, setTotalInv] = useState('');
     const navigate = useNavigate();
-    const handleMemberData = async () => {
-        await axios.get(`/member/${memberID}`, {
-            params: {
-                invoice: true
-            },
-        }).then(resp => {
-            setMember(resp.data.result);
-            let inv = resp.data.result.invoice || []
-            let total = 0;
-            inv.map((invoice) => {
-                return total += invoice.status === '2' && parseInt(invoice.amount);
-            })
-            setTotalInv(total.toString());
-        }).catch(error => HandleError(error));
-    }
     const toggle = () => {
         setSidebar(!sideBar);
     };
     useEffect(() => {
-        handleMemberData().then();
-        // eslint-disable-next-line
-    }, []);
-    useEffect(() => {
         sideBar ? document.body.classList.add("toggle-shown") : document.body.classList.remove("toggle-shown");
-    }, [sideBar])
+    }, [sideBar]);
     return (
         <>
             <Head title="Detail Pelanggan"></Head>
@@ -200,7 +179,7 @@ const Detail = () => {
                                         </Block>
                                         <div className="nk-divider divider md"></div>
                                         <Block>
-                                            <Order member={member} setReloadInvoice={setReloadInvoice}/>
+                                            <Order setReloadInvoice={setReloadInvoice}/>
                                         </Block>
                                         <div className="nk-divider divider md"></div>
                                         <Block>
@@ -252,8 +231,8 @@ const Detail = () => {
                                             <div className="profile-balance-group gx-4">
                                                 <div className="profile-balance-sub">
                                                     <div className="profile-balance-amount">
-                                                        <div className="number">
-                                                            {Currency(totalInv) || '0'}
+                                                        <div className="number text-danger">
+                                                            {Currency(unpaidSum) || 0}
                                                         </div>
                                                     </div>
                                                     <div className="profile-balance-subtitle">Belum terbayar</div>

@@ -9,20 +9,16 @@ import {
     BlockTitle,
     Icon,
     PreviewCard,
-    ReactDataTable, toastSuccess
+    ReactDataTable
 } from "../../../components";
 import {Button, ButtonGroup, Spinner} from "reactstrap";
-import axios from "axios";
-import HandleError from "../../auth/handleError";
 import {ToastContainer} from "react-toastify";
 import Add from "./Add";
 import Edit from "./Edit";
+import {actionType, Dispatch} from "../../../reducer";
 
 const Account = () => {
-    const [loading, setLoading] = useState({
-        show: '',
-        delete: ''
-    });
+    const [loading, setLoading] = useState(0);
     const [reload, setReload] = useState(true);
     const [modal, setModal] = useState({
         add: false,
@@ -40,6 +36,7 @@ const Account = () => {
             name: "Nomor Rekening",
             selector: (row) => row.number,
             sortable: true,
+            hide: "sm"
         },
         {
             name: "Nama",
@@ -57,75 +54,47 @@ const Account = () => {
             name: "Aksi",
             selector: (row) => row.id,
             sortable: false,
-            hide: "sm",
+            // hide: "sm",
             cell: (row) => (
                 <ButtonGroup size="sm">
                     <Button
                         color="outline-info"
-                        onClick={() => handleAccountShow(row.id)}
-                        disabled={loading.show === row.id}
-
+                        onClick={() => {
+                            setAccount(row);
+                            setModal({
+                                add: false,
+                                edit: true
+                            })
+                        }}
                     >
-                        {loading.show === row.id ? <Spinner size="sm" color="light"/> : <Icon name="edit"/>}
+                        <Icon name="edit"/>
                     </Button>
                     <Button
                         color="outline-danger"
-                        onClick={() => handleAccountDelete(row.id)}
-                        disabled={loading.delete === row.id}
+                        onClick={() => Dispatch(actionType.ACCOUNT_DELETE, {
+                            id: row.id,
+                            setLoading: setLoading,
+                            setReload: setReload
+                        })}
+                        disabled={loading === row.id}
                     >
-                        {loading.delete === row.id ? <Spinner size="sm" color="light"/> : <Icon name="trash"/>}
+                        {loading === row.id ? <Spinner size="sm" color="light"/> : <Icon name="trash"/>}
                     </Button>
                 </ButtonGroup>
             )
         },
     ];
-    const handleAccountData = async () => {
-        await axios.get("/account").then(resp => {
-            setAccounts(resp.data.result)
-        }).catch(error => HandleError(error));
-    }
-    const handleAccountShow = async (id) => {
-        setLoading({
-            show: id,
-            delete: ''
-        });
-        await axios.get(`/account/${id}`).then(resp => {
-            setAccount(resp.data.result);
-            setModal({
-                add: false,
-                edit: true
-            });
-            setLoading({
-                show: '',
-                delete: ''
-            })
-        }).catch(error => HandleError(error));
-    }
-    const handleAccountDelete = async (id) => {
-        setLoading({
-            show: '',
-            delete: id
-        })
-        await axios.delete(`/account/${id}`).then(resp => {
-                toastSuccess(resp.data.message);
-                setReload(true);
-                setLoading({
-                    show: '',
-                    delete: ''
-                })
-            }).catch(error => HandleError(error));
-    }
     useEffect(() => {
-        reload && handleAccountData().then(() => setReload(false));
+        reload && Dispatch(actionType.ACCOUNT_GET, {
+            setData: setAccounts
+        }).then(() => setReload(false));
     }, [reload]);
     return <>
         <Head title="Rekening"/>
         <Content page="component">
             <BlockHead size="lg" wide="sm">
                 <BlockHeadContent>
-                    <BackTo link="/" icon="arrow-left">
-                        DASHBOARD
-                    </BackTo>
+                    <BackTo link="/" icon="arrow-left">DASHBOARD</BackTo>
                 </BlockHeadContent>
             </BlockHead>
             <BlockHead>
@@ -154,7 +123,7 @@ const Account = () => {
                 </BlockBetween>
             </BlockHead>
             <PreviewCard>
-                <ReactDataTable data={accounts} columns={Columns} expandableRows pagination onLoad={reload}/>
+                <ReactDataTable data={accounts} columns={Columns} pagination onLoad={reload}/>
             </PreviewCard>
             <Add open={modal.add} setOpen={setModal} datatable={setReload}/>
             <Edit open={modal.edit} setOpen={setModal} datatable={setReload} account={account}/>

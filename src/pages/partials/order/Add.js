@@ -1,12 +1,14 @@
 import {Button, Col, Label, Modal, ModalBody, ModalHeader, Row, Spinner} from "reactstrap";
-import {Icon, RSelect, toastSuccess} from "../../../components";
-import React, {useEffect, useState} from "react";
-import axios from "axios";
-import HandleError from "../../auth/handleError";
+import {Icon, RSelect} from "../../../components";
+import React, {useContext, useEffect, useState} from "react";
 import DatePicker from "react-datepicker";
 import {setDateForPicker} from "../../../utils/Utils";
+import {actionType, Dispatch} from "../../../reducer";
+import {MemberContext} from "../../member/MemberContext";
+import moment from "moment";
 
-const Add = ({open, setOpen, datatable, member}) => {
+const Add = ({open, setOpen, datatable}) => {
+    const {member} = useContext(MemberContext);
     const [loading, setLoading] = useState(false);
     const [due, setDue] = useState(new Date());
     const [formData, setFormData] = useState({
@@ -14,53 +16,37 @@ const Add = ({open, setOpen, datatable, member}) => {
         product: '',
         price: '',
         cycle: '',
-        due: setDateForPicker(due),
+        due: setDateForPicker(moment().toDate()),
 
     });
     const [productOption, setProductOption] = useState([]);
-    const handleProductOption = async () => {
-        await axios.get(`/product`, {
-            params: {
-                type: 'select'
-            },
-        }).then(resp => {
-            setProductOption(resp.data.result);
-        }).catch(error => {
-            setLoading(false);
-        });
-    }
     const handleFormInput = (e) => {
         setFormData({...formData, [e.target.name]: e.target.value});
-    }
-    const handleFormSubmit = async (e) => {
-        setLoading(true);
-        e.preventDefault();
-        await axios.post(`/order`, formData).then(resp => {
-            toastSuccess(resp.data.message);
-            toggle();
-            datatable(true);
-            setLoading(false);
-        }).catch(error => {
-            HandleError(error);
-            setLoading(false);
-        });
     }
     const toggle = () => {
         setOpen({
             add: false,
             edit: false
         });
+        setFormData({
+            member: '',
+            product: '',
+            price: '',
+            cycle: '',
+            due: setDateForPicker(moment().toDate()),
+        })
     };
 
     useEffect(() => {
         setFormData({
             ...formData, member: member.id || ''
         });
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [member]);
 
     useEffect(() => {
-        handleProductOption().then();
+        Dispatch(actionType.PRODUCT_GET,
+            {setData: setProductOption},
+            {type: 'select'}).then();
     }, []);
 
     return (
@@ -76,7 +62,15 @@ const Add = ({open, setOpen, datatable, member}) => {
                 TAMBAH PRODUK
             </ModalHeader>
             <ModalBody>
-                <form onSubmit={(e) => handleFormSubmit(e)}>
+                <form onSubmit={(e) => {
+                    e.preventDefault();
+                    Dispatch(actionType.ORDER_STORE, {
+                        formData: formData,
+                        setLoading: setLoading,
+                        setReload: datatable,
+                        toggle: toggle
+                    }).then()
+                }}>
                     <div className="form-group">
                         <Label htmlFor="member" className="form-label">
                             Nama Pelanggan
@@ -151,6 +145,7 @@ const Add = ({open, setOpen, datatable, member}) => {
                                 </Label>
                                 <div className="form-control-wrap">
                                     <DatePicker
+                                        dateFormat="dd/MM/yyyy"
                                         selected={due}
                                         onChange={(e) => {
                                             setDue(e);
@@ -164,7 +159,7 @@ const Add = ({open, setOpen, datatable, member}) => {
                     </div>
                     <div className="form-group">
                         <Button size="lg" className="btn-block" type="submit" color="primary" disabled={loading}>
-                            {loading ? <Spinner size="sm" color="light"/> : "SIMPAN" }
+                            {loading ? <Spinner size="sm" color="light"/> : "SIMPAN"}
                         </Button>
                     </div>
                 </form>

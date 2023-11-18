@@ -1,8 +1,7 @@
 import React, {useState} from "react";
 import {Button, Label, Modal, ModalBody, ModalHeader, Spinner} from "reactstrap";
-import {Icon, toastSuccess} from "../../../components";
-import axios from "axios";
-import HandleError from "../../auth/handleError";
+import {Icon} from "../../../components";
+import {actionType, Dispatch} from "../../../reducer";
 const Add = ({open, setOpen, datatable}) => {
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
@@ -12,23 +11,14 @@ const Add = ({open, setOpen, datatable}) => {
     const handleFormInput = (e) => {
         setFormData({...formData, [e.target.name]: e.target.value});
     }
-    const handleFormSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        await axios.post('/category', formData).then(resp => {
-            toastSuccess(resp.data.message);
-            setLoading(false);
-            toggle();
-            datatable(true);
-        }).catch(error => {
-            HandleError(error);
-            setLoading(false);
-        });
-    }
     const toggle = () => {
         setOpen({
             add: false,
             edit: false
+        });
+        setFormData({
+            name: '',
+            desc: ''
         });
     }
     return <>
@@ -44,7 +34,15 @@ const Add = ({open, setOpen, datatable}) => {
                 TAMBAH GRUP
             </ModalHeader>
             <ModalBody>
-                <form onSubmit={(e) => handleFormSubmit(e)}>
+                <form onSubmit={(e) => {
+                    e.preventDefault();
+                    Dispatch(actionType.CATEGORY_STORE, {
+                        formData: formData,
+                        setLoading: setLoading,
+                        toggle: toggle,
+                        setReload: datatable
+                    }).then();
+                }}>
                     <div className="form-group">
                         <Label htmlFor="name" className="form-label">
                             Nama Grup

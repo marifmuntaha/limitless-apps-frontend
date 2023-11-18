@@ -6,10 +6,10 @@ import TrafficDougnut from "../partials/dashboard/TrafficDougnut";
 import UserTable from "../partials/dashboard/UserTable";
 import WidgetDashboard from "../partials/dashboard/WidgetDashboard";
 
-const Dashboard = ({...props}) => {
+const Dashboard = () => {
     return (
         <>
-            <Head title="Blank Page"/>
+            <Head title="Dashboard"/>
             <Content>
                 <BlockHead size="sm">
                     <BlockBetween>

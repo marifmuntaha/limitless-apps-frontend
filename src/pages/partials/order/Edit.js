@@ -1,11 +1,10 @@
 import {Button, Col, Label, Modal, ModalBody, ModalHeader, Row, Spinner} from "reactstrap";
-import {Icon, RSelect, toastSuccess} from "../../../components";
+import {Icon, RSelect} from "../../../components";
 import React, {useEffect, useState} from "react";
-import axios from "axios";
-import HandleError from "../../auth/handleError";
 import DatePicker from "react-datepicker";
 import moment from "moment";
 import {setDateForPicker} from "../../../utils/Utils";
+import {actionType, Dispatch} from "../../../reducer";
 
 const Edit = ({open, setOpen, datatable, order}) => {
     const [loading, setLoading] = useState(false);
@@ -35,45 +34,36 @@ const Edit = ({open, setOpen, datatable, order}) => {
         {value: '2', label: 'Disable'},
         {value: '3', label: 'Ditangguhkan'},
     ]
-    const handleProductOption = async () => {
-        await axios.get(`/product`, {
-            params: {
-                type: 'select'
-            },
-        }).then(resp => {
-            setProductOption(resp.data.result);
-            setProductSelected(() => {
-                return resp.data.result.filter((product) => {
-                    return order.product && product.value === order.product.id
-                });
-            });
-        }).catch(error => HandleError(error));
-    }
     const handleFormInput = (e) => {
         setFormData({...formData, [e.target.name]: e.target.value});
-    }
-    const handleFormSubmit = async (e) => {
-        setLoading(true);
-        e.preventDefault();
-        await axios.put(`/order/${formData.id}`, formData).then(resp => {
-            toastSuccess(resp.data.message);
-            toggle();
-            datatable(true);
-            setLoading(false);
-        }).catch(error => {
-            HandleError(error);
-            setLoading(false);
-        });
     }
     const toggle = () => {
         setOpen({
             add: false,
             edit: false
         });
+        setFormData({
+            id: '',
+            member: '',
+            product: '',
+            cycle: '',
+            price: '',
+            due: '',
+            status: ''
+        });
     };
 
     useEffect(() => {
-        handleProductOption().then();
+        Dispatch(actionType.PRODUCT_GET,
+            {setData: setProductOption},
+            {type: 'select'}).then(resp => {
+            setProductSelected(() => {
+                return resp.filter((product) => {
+                    return order.product && product.value === order.product.id
+                });
+            });
+        });
+
         setFormData({
             id: order.id,
             member: order.member ? order.member.id : '',
@@ -83,14 +73,15 @@ const Edit = ({open, setOpen, datatable, order}) => {
             due: order.due || '',
             status: order.status || '',
         });
+
         setDue(moment(order.due || new Date(), 'YYYY-MM-DD').toDate());
+
         setCycleSelected(cycleOption.filter(cycle => {
             return order.cycle && cycle.value === order.cycle;
         }));
         setStatusSelected(statusOption.filter(status => {
             return order.status && status.value === order.status
         }));
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [order]);
 
     return (
@@ -106,7 +97,15 @@ const Edit = ({open, setOpen, datatable, order}) => {
                 UBAH PRODUK
             </ModalHeader>
             <ModalBody>
-                <form onSubmit={(e) => handleFormSubmit(e)}>
+                <form onSubmit={(e) => {
+                    e.preventDefault();
+                    Dispatch(actionType.ORDER_UPDATE, {
+                        formData: formData,
+                        setLoading: setLoading,
+                        setReload: datatable,
+                        toggle: toggle
+                    }).then();
+                }}>
                     <div className="form-group">
                         <Label htmlFor="member" className="form-label">
                             Nama Pelanggan
@@ -178,6 +177,7 @@ const Edit = ({open, setOpen, datatable, order}) => {
                                 </Label>
                                 <div className="form-control-wrap">
                                     <DatePicker
+                                        dateFormat="dd/MM/yyyy"
                                         selected={due}
                                         onChange={(e) => {
                                             setDue(e);
@@ -206,7 +206,7 @@ const Edit = ({open, setOpen, datatable, order}) => {
                     </div>
                     <div className="form-group">
                         <Button size="lg" className="btn-block" type="submit" color="primary" disabled={loading}>
-                            {loading ? <Spinner size="sm" color="light"/> : "SIMPAN" }
+                            {loading ? <Spinner size="sm" color="light"/> : "SIMPAN"}
                         </Button>
                     </div>
                 </form>

@@ -8,7 +8,7 @@ import HeaderSearch from "../header-search";
 
 import { useTheme, useThemeUpdate } from '../provider/Theme';
 
-const Header = ({ fixed, className, ...props }) => {
+const Header = ({ fixed, className }) => {
   
   const theme = useTheme();
   const themeUpdate = useThemeUpdate();
@@ -43,7 +43,7 @@ const Header = ({ fixed, className, ...props }) => {
                 <Notification />
               </li>
               <li className="user-dropdown"  onClick={themeUpdate.sidebarHide}>
-                <User user={props.user}/>
+                <User/>
               </li>
             </ul>
           </div>

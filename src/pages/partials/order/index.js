@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from "react";
+import React, {useContext, useEffect, useState} from "react";
 import {
     BlockBetween,
     BlockHead,
@@ -14,14 +14,18 @@ import HandleError from "../../auth/handleError";
 import Add from "./Add";
 import Edit from "./Edit";
 import moment from "moment";
+import {MemberContext} from "../../member/MemberContext";
+import {actionType, Dispatch} from "../../../reducer";
 
-const Order = ({setReloadInvoice, ...props}) => {
-    const member = props.member;
+const Order = ({setReloadInvoice}) => {
+    const {member} = useContext(MemberContext);
     const [loading, setLoading] = useState({
-        submit: '',
+        invoice: '',
         show: '',
         delete: ''
     });
+    const [loadingSubmit, setLoadingSubmit] = useState(0);
+    const [loadingDelete, setLoadingDelete] = useState(0);
     const [reload, setReload] = useState(true);
     const [modal, setModal] = useState({
         add: false,
@@ -67,38 +71,62 @@ const Order = ({setReloadInvoice, ...props}) => {
                     {row.status === '1' && (
                         <Button
                             color="outline-info"
-                            onClick={() => handleInvoiceSubmit(row)}
-                            disabled={row === loading.submit}
+                            onClick={() => {
+                                setLoadingSubmit(row.id)
+                                Dispatch(actionType.INVOICE_GET, {}, {
+                                    member: member.id, product: row.product.id
+                                }).then(resp => {
+                                    let invoice = resp.pop();
+                                    let due = invoice
+                                        ? moment(invoice.due, 'YYYY-MM-DD').add(1, 'months').toDate()
+                                        : moment(order.due, 'YYYY-MM-DD').toDate();
+                                    Dispatch(actionType.INVOICE_STORE, {
+                                        formData: {
+                                            member: member.id,
+                                            product: row.product.id,
+                                            desc: row.product.name + '-' + monthNames[due.getMonth()] + due.getFullYear(),
+                                            price: row.price,
+                                            amount: row.price,
+                                            status: '1',
+                                            due: setDateForPicker(due),
+                                        },
+                                        setLoading: setLoadingSubmit,
+                                        setReload: setReloadInvoice
+                                    }).then(() => setLoadingSubmit(0));
+                                });
+                            }}
+                            disabled={row.id === loadingSubmit}
                         >
-                            {row === loading.submit ? <Spinner size="sm" color="info"/> : <Icon name="ticket"/>}
+                            {row.id === loadingSubmit ? <Spinner size="sm" color="info"/> : <Icon name="ticket"/>}
                         </Button>
                     )}
                     <Button
                         color="outline-warning"
-                        onClick={() => handleOrderShow(row.id)}
-                        disabled={row.id === loading.show}
+                        onClick={() => {
+                            setOrder(row);
+                            setModal({
+                                add: false,
+                                edit: true
+                            });
+                        }}
                     >
-                        {row.id === loading.show ? <Spinner size="sm" color="warning"/> : <Icon name="edit"/>}
+                        <Icon name="edit"/>
                     </Button>
                     <Button
                         color="outline-danger"
-                        onClick={() => handleOrderDelete(row.id)}
-                        disabled={row.id === loading.delete}
+                        onClick={() => Dispatch(actionType.ORDER_DELETE, {
+                            id: row.id,
+                            setReload: setReload,
+                            setLoading: setLoadingDelete
+                        })}
+                        disabled={row.id === loadingDelete}
                     >
-                        {row.id === loading.delete ? <Spinner size="sm" color="danger"/> : <Icon name="trash"/>}
+                        {row.id === loadingDelete ? <Spinner size="sm" color="danger"/> : <Icon name="trash"/>}
                     </Button>
                 </ButtonGroup>
             )
         },
     ];
-    const handleOrdersData = async () => {
-        await axios.get(`/order`, {
-            params: {
-                member: member.id
-            },
-        }).then(resp => setOrders(resp.data.result))
-            .catch(error => HandleError(error));
-    }
     const handleOrderShow = async (id) => {
         setLoading({
             ...loading, show: id
@@ -126,59 +154,19 @@ const Order = ({setReloadInvoice, ...props}) => {
             toastSuccess(resp.data.message);
             setReload(true);
             setLoading({
-                ...loading, delete : ''
+                ...loading, delete: ''
             });
         }).catch(error => {
             HandleError(error);
             setLoading({
-                ...loading, delete : ''
-            });
-        });
-    }
-    const handleInvoiceSubmit = async (order) => {
-        setLoading({
-            ...loading, submit: order
-        });
-        await axios.get(`/invoice`, {
-            params: {
-                member: member.id,
-                product: order.product.id
-            },
-        }).then(resp => {
-            let invoice = resp.data.result.pop();
-            let due = invoice
-                ? moment(invoice.due, 'YYYY-MM-DD').add(1, 'months').toDate()
-                : moment(order.due, 'YYYY-MM-DD').toDate();
-            axios.post(`/invoice`, {
-                member: member.id,
-                product: order.product.id,
-                desc: order.product.name + '-' + monthNames[due.getMonth()] + due.getFullYear(),
-                price: order.price,
-                amount: order.price,
-                status: '1',
-                due: setDateForPicker(due),
-            }).then(resp => {
-                toastSuccess(resp.data.message);
-                setReloadInvoice(true);
-                setLoading({
-                    ...loading, submit: ''
-                });
-            }).catch(error => {
-                HandleError(error);
-                setLoading({
-                    ...loading, submit: ''
-                });
-            });
-        }).catch(error => {
-            HandleError(error);
-            setLoading({
-                ...loading, submit: ''
+                ...loading, delete: ''
             });
         });
     }
     useEffect(() => {
-        member.id && handleOrdersData().then(() => setReload(false));
-        // eslint-disable-next-line
+        member.id && Dispatch(actionType.ORDER_GET,
+            {setData: setOrders},
+            {member: member.id}).then(() => setReload(false));
     }, [reload, member]);
     return <>
         <BlockHead>
@@ -211,7 +199,7 @@ const Order = ({setReloadInvoice, ...props}) => {
                 <ReactDataTable data={orders} columns={Columns} expandableRows pagination onLoad={reload}/>
             )}
         </PreviewCard>
-        <Add open={modal.add} setOpen={setModal} datatable={setReload} member={member}/>
+        <Add open={modal.add} setOpen={setModal} datatable={setReload}/>
         <Edit open={modal.edit} setOpen={setModal} datatable={setReload} order={order}/>
     </>
 }

@@ -4,26 +4,27 @@ import {Routes, Route, useLocation} from "react-router-dom";
 import Dashboard from "../pages/dashboard";
 import Error404 from "../pages/error/Error404";
 import Error504 from "../pages/error/Error504";
-//
+
+import Layout from "../layout";
+import LayoutNoSidebar from "../layout/NoSidebar"
 import Login from "../pages/auth/Login";
 import Register from "../pages/auth/Register";
 import ForgotPassword from "../pages/auth/ForgotPassword";
-// import Success from "../pages/auth/Success";
-
-import Layout from "../layout";
-import LayoutNoSidebar from "../layout/NoSidebar";
+import Account from "../pages/master/account";
+import Group from "../pages/master/group";
 import Product from "../pages/product";
 import Member from "../pages/member";
 import MemberDetail from "../pages/member/Detail";
 import Invoice from "../pages/invoice";
-import InvoiceDetail from "../pages/invoice/Detail"
+import InvoiceDetail from "../pages/invoice/Detail";
 import InvoicePrint from "../pages/invoice/Print"
-import InvoiceReport from "../pages/report/invoice"
-import Setting from "../pages/setting";
+import InvoiceReport from "../pages/invoice"
 import Payment from "../pages/report/payment";
-import Account from "../pages/master/account";
 import Cashflow from "../pages/cashflow";
-import Group from "../pages/master/group";
+import Setting from "../pages/setting";
+import {MemberProvider} from "../pages/member/MemberContext";
+import {InvoiceProvider} from "../pages/partials/invoice/InvoiceContext";
+// import Success from "../pages/auth/Success";
 
 const Router = () => {
     const location = useLocation();
@@ -38,8 +39,12 @@ const Router = () => {
                 <Route path="/master/rekening" element={<Account/>}></Route>
                 <Route path="/master/grup" element={<Group/>}></Route>
                 <Route path="/produk" element={<Product/>}></Route>
-                <Route path="/pelanggan" element={<Member/>}></Route>
-                <Route path="/pelanggan/:memberID" element={<MemberDetail/>}></Route>
+                <Route element={<MemberProvider/>}>
+                    <Route element={<InvoiceProvider/>}>
+                        <Route path="/pelanggan" element={<Member/>}></Route>
+                        <Route path="/pelanggan/detail" element={<MemberDetail/>}></Route>
+                    </Route>
+                </Route>
                 <Route path="/tagihan" element={<Invoice/>}></Route>
                 <Route path="/tagihan/:invoiceID" element={<InvoiceDetail/>}></Route>
                 <Route path="/laporan/pembayaran" element={<Payment />}></Route>

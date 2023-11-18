@@ -1,7 +1,9 @@
-import React, { useState } from "react";
+import React, {useContext, useState} from "react";
 import { DropdownToggle, DropdownMenu, Dropdown } from "reactstrap";
 import { Icon, LinkList, LinkItem, UserAvatar } from "../../../../components";
-const User = ({user}) => {
+import {UserContext} from "../../../../context/UserContext";
+const User = () => {
+  const user = useContext(UserContext);
   const [open, setOpen] = useState(false);
   const toggle = () => setOpen((prevState) => !prevState);
   const handleSignout = () => {

@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from "react";
-import {ReactDataTable, UserAvatar} from "../../../components";
+import {ReactDataTable} from "../../../components";
 import {Card, CardBody, CardTitle} from "reactstrap";
 import axios from "axios";
 import HandleError from "../../auth/handleError";
@@ -17,7 +17,7 @@ const UserTable = () => {
             name: "Alamat",
             selector: (row) => row.address,
             sortable: false,
-            hide: 370,
+            hide: 480,
         },
         {
             name: "Pendaftaran",
@@ -50,7 +50,7 @@ const UserTable = () => {
         <Card className="card-bordered">
             <CardBody className="card-inner">
                 <CardTitle tag="h6">Pelanggan Terbaru</CardTitle>
-                <ReactDataTable data={members} columns={Columns} className="nk-tb-list"/>
+                <ReactDataTable data={members} columns={Columns} expandableRows/>
             </CardBody>
         </Card>
     </>
