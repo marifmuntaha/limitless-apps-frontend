@@ -183,7 +183,7 @@ const Detail = () => {
                                         </Block>
                                         <div className="nk-divider divider md"></div>
                                         <Block>
-                                            <Invoice member={member} reload={reloadInvoice} setReload={setReloadInvoice}/>
+                                            <Invoice reload={reloadInvoice} setReload={setReloadInvoice}/>
                                         </Block>
                                     </div>
                                 </div>

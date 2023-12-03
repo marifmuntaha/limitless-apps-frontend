@@ -1,15 +1,15 @@
-import React, {useEffect, useState} from "react";
+import React, {useContext, useEffect, useState} from "react";
 import {Button, Col, Label, Modal, ModalBody, ModalHeader, Row, Spinner} from "reactstrap";
-import {Icon, RSelect, toastSuccess} from "../../components";
-import axios from "axios";
-import HandleError from "../auth/handleError";
+import {Icon, RSelect} from "../../components";
 import DatePicker from "react-datepicker";
 import {setDateForPicker} from "../../utils/Utils";
 import moment from "moment";
+import {actionType, Dispatch} from "../../reducer";
+import {MemberContext} from "../member/MemberContext";
 
-const Add = ({open, setOpen, datatable, ...params}) => {
+const Add = ({open, setOpen, datatable}) => {
     const [loading, setLoading] = useState(false);
-    const member = params.member;
+    const {member} = useContext(MemberContext);
     const [memberOption, setMemberOption] = useState([]);
     const [memberSelected, setMemberSelected] = useState([]);
     const [due, setDue] = useState(moment().toDate());
@@ -25,30 +25,8 @@ const Add = ({open, setOpen, datatable, ...params}) => {
     const [price, setPrice] = useState(0);
     const [discount, setDiscount] = useState(0);
     const [fees, setFees] = useState(0);
-    const handleMemberOption = async () => {
-        await axios.get(`/member`, {
-            params: {
-                type: 'select'
-            }
-        })
-            .then(resp => setMemberOption(resp.data.result))
-            .catch(error => HandleError(error));
-    }
     const handleFormInput = (e) => {
         setFormData({...formData, [e.target.name]: e.target.value});
-    }
-    const handleFormSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        await axios.post(`/invoice`, formData).then(resp => {
-            toastSuccess(resp.data.message);
-            toggle();
-            datatable(true);
-            setLoading(false);
-        }).catch(error => {
-            HandleError(error);
-            setLoading(false);
-        });
     }
     const toggle = () => {
         setOpen({
@@ -67,30 +45,31 @@ const Add = ({open, setOpen, datatable, ...params}) => {
         });
         member
             ? setMemberSelected(() => memberOption.filter((item) => {
-                return item.value === member.id}))
+                return item.value === member.id
+            }))
             : setMemberSelected([]);
         setDue(moment().toDate());
     };
+
     useEffect(() => {
-        handleMemberOption().then();
-    }, []);
-    useEffect(() => {
-        if (member) {
+        Dispatch(actionType.MEMBER_GET, {setData: setMemberOption}, {type: 'select'}).then(resp => {
             setFormData({
                 ...formData, member: member.id
             });
-            setMemberSelected(() => memberOption.filter((item) => {
+            setMemberSelected(() => resp.filter((item) => {
                 return item.value === member.id
             }));
-        }
+        });
         // eslint-disable-next-line
-    }, [member]);
+    }, []);
+
     useEffect(() => {
         setFormData({
             ...formData, amount: ((price || 0) - (discount || 0)) + (fees || 0)
         });
         // eslint-disable-next-line
     }, [price, discount, fees]);
+
     return <>
         <Modal isOpen={open} toggle={toggle}>
             <ModalHeader
@@ -104,7 +83,15 @@ const Add = ({open, setOpen, datatable, ...params}) => {
                 TAMBAH
             </ModalHeader>
             <ModalBody>
-                <form onSubmit={(e) => handleFormSubmit(e)}>
+                <form onSubmit={(e) => {
+                    e.preventDefault();
+                    Dispatch(actionType.INVOICE_STORE, {
+                        formData: formData,
+                        setLoading: setLoading,
+                        setReload: datatable,
+                        toggle: toggle
+                    }).then()
+                }}>
                     <div className="form-group">
                         <Label htmlFor="member" className="form-label">
                             Nama Pelanggan
@@ -226,7 +213,7 @@ const Add = ({open, setOpen, datatable, ...params}) => {
                     </div>
                     <div className="form-group">
                         <Button size="lg" className="btn-block" type="submit" color="primary">
-                            {loading ? <Spinner size="sm" color="light"/> : "SIMPAN" }
+                            {loading ? <Spinner size="sm" color="light"/> : "SIMPAN"}
                         </Button>
                     </div>
                 </form>

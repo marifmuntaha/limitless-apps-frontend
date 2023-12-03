@@ -33,11 +33,12 @@ export const getData = async (url, state, params) => {
 
 export const storeData = async (url, state) => {
     state.setLoading && state.setLoading(true);
-    await axios.post(url, state.formData).then(resp => {
+    return await axios.post(url, state.formData).then(resp => {
         toastSuccess(resp.data.message);
         state.setLoading && state.setLoading(false);
         state.toggle && state.toggle();
         state.setReload && state.setReload(true);
+        return resp.data.result;
     }).catch(error => {
         handleError(error);
         state.setLoading && state.setLoading(false);
@@ -61,6 +62,17 @@ export const deleteData =  async (url, state) => {
         toastSuccess(resp.data.message);
         state.setLoading && state.setLoading(0);
         state.setReload && state.setReload(true);
+    }).catch(error => {
+        handleError(error);
+        state.setLoading && state.setLoading(0);
+    })
+}
+
+export const notifyData =  async (url, state) => {
+    state.setLoading && state.setLoading(state.id);
+    await axios.post(url).then(resp => {
+        toastSuccess(resp.data.message);
+        state.setLoading && state.setLoading(0);
     }).catch(error => {
         handleError(error);
         state.setLoading && state.setLoading(0);

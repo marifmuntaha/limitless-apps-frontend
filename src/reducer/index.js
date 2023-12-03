@@ -1,5 +1,5 @@
 import {actionType} from "./actionType";
-import {AuthInfo, AuthLogin, getData, storeData, updateData, deleteData} from "./action";
+import {AuthInfo, AuthLogin, getData, storeData, updateData, deleteData, notifyData} from "./action";
 
 let url = '';
 async function Dispatch(method, state, params) {
@@ -80,8 +80,9 @@ async function Dispatch(method, state, params) {
             break;
         case actionType.MEMBER_GET :
             url = '/member';
-            await getData(url, state, params);
-            break;
+            return await getData(url, state, params).then(resp => {
+                return resp
+            });
         case actionType.MEMBER_STORE :
             url = '/member';
             await storeData(url, state);
@@ -111,9 +112,45 @@ async function Dispatch(method, state, params) {
             url = `/invoice/${state.id}`;
             await deleteData(url, state);
             break;
+        case actionType.INVOICE_SEND_NOTIFY :
+            url = `/invoice/send-notification/${state.id}`;
+            await notifyData(url, state);
+            break;
+        case actionType.PAYMENT_GET :
+            url = '/payment';
+            return await getData(url, state, params).then(resp => {
+                return resp
+            });
+        case actionType.PAYMENT_STORE :
+            url = '/payment';
+            return await storeData(url, state).then(resp => {
+                return resp
+            });
+        case actionType.PAYMENT_UPDATE :
+            url = `/payment/${state.formData.id}`;
+            await updateData(url, state);
+            break;
+        case actionType.PAYMENT_DELETE :
+            url = `/payment/${state.id}`;
+            await deleteData(url, state);
+            break;
         case actionType.CASHFLOW_GET :
             url = '/cashflow';
-            await getData(url, state, params);
+            return await getData(url, state, params).then(resp => {
+                return resp
+            });
+        case actionType.CASHFLOW_STORE :
+            url = '/cashflow';
+            return await storeData(url, state).then(resp => {
+                return resp
+            });
+        case actionType.CASHFLOW_UPDATE :
+            url = `/cashflow/${state.formData.id}`;
+            await updateData(url, state);
+            break;
+        case actionType.CASHFLOW_DELETE :
+            url = `/cashflow/${state.id}`;
+            await deleteData(url, state);
             break;
         default:
     }

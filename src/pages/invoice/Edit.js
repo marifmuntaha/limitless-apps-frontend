@@ -1,11 +1,10 @@
 import React, {useEffect, useState} from "react";
 import {Button, Col, Label, Modal, ModalBody, ModalHeader, Row, Spinner} from "reactstrap";
-import {Icon, RSelect, toastSuccess} from "../../components";
+import {Icon, RSelect} from "../../components";
 import DatePicker from "react-datepicker";
 import {setDateForPicker} from "../../utils/Utils";
-import axios from "axios";
-import HandleError from "../auth/handleError";
 import moment from "moment";
+import {actionType, Dispatch} from "../../reducer";
 
 const Edit = ({open, setOpen, datatable, invoice}) => {
     const [loading, setLoading] = useState(false);
@@ -36,44 +35,8 @@ const Edit = ({open, setOpen, datatable, invoice}) => {
         {value: '3', label: 'Batal'},
         {value: '4', label: 'Jatuh Tempo'},
     ]
-    const handleProductOption = async () => {
-        await axios.get(`/product`, {
-            params: {
-                type: 'select'
-            },
-        }).then(resp => {
-            setProductOption(resp.data.result);
-            setProductSelected(() =>{
-                return resp.data.result.filter((product) => {
-                    return invoice.product && product.value === invoice.product.id;
-                });
-            });
-        }).catch(error => HandleError(error));
-    }
     const handleFormInput = (e) => {
         setFormData({...formData, [e.target.name]: e.target.value});
-    }
-    const handleMemberData = async () => {
-      await axios.get(`/member`, {
-          params: {
-              type: 'select'
-          }
-      })
-          .then(resp => setMemberOption(resp.data.result))
-          .catch(error => HandleError(error));
-    }
-    const handleFormSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        await axios.put(`/invoice/${formData.id}`, formData).then(resp => {
-            toastSuccess(resp.data.message);
-            toggle();
-            datatable(true);
-            setLoading(false);
-        }).catch(error => {
-            HandleError(error);
-            setLoading(false);
-        });
     }
     const toggle = () => {
         setOpen({
@@ -81,12 +44,34 @@ const Edit = ({open, setOpen, datatable, invoice}) => {
             edit: false,
             pay: false,
         });
+        setFormData({
+            id: '',
+            member: '',
+            product: '',
+            desc: '',
+            price: 0,
+            discount: 0,
+            fees: 0,
+            amount: 0,
+            due: setDateForPicker(moment().toDate()),
+            status: ''
+        })
     };
     useEffect(() => {
-        handleMemberData().then();
+        Dispatch(actionType.MEMBER_GET,
+            {setData: setMemberOption},
+            {type: 'select'}).then();
     }, []);
     useEffect(() => {
-        handleProductOption().then();
+        Dispatch(actionType.PRODUCT_GET,
+            {setData: setProductOption},
+            {type: 'select'}).then(resp => {
+            setProductSelected(() => {
+                return resp.filter((product) => {
+                    return invoice.product && product.value === invoice.product.id;
+                });
+            });
+        })
         setFormData({
             id: invoice.id || '',
             member: invoice.member ? invoice.member.id : '',
@@ -111,13 +96,11 @@ const Edit = ({open, setOpen, datatable, invoice}) => {
         setPrice(invoice.price || 0);
         setDiscount(invoice.discount || 0);
         setFees(invoice.fees || 0);
-        // eslint-disable-next-line
     }, [invoice]);
     useEffect(() => {
         setFormData({
             ...formData, amount: ((price || 0) - (discount || 0)) + (fees || 0)
         });
-        // eslint-disable-next-line
     }, [price, discount, fees]);
     return <>
         <Modal isOpen={open} toggle={toggle}>
@@ -132,7 +115,15 @@ const Edit = ({open, setOpen, datatable, invoice}) => {
                 TAMBAH
             </ModalHeader>
             <ModalBody>
-                <form onSubmit={(e) => handleFormSubmit(e)}>
+                <form onSubmit={(e) => {
+                    e.preventDefault();
+                    Dispatch(actionType.INVOICE_UPDATE, {
+                        formData: formData,
+                        setLoading: setLoading,
+                        setReload: datatable,
+                        toggle: toggle
+                    }).then()
+                }}>
                     <div className="form-group">
                         <Label htmlFor="member" className="form-label">
                             Nama Pelanggan
@@ -289,7 +280,7 @@ const Edit = ({open, setOpen, datatable, invoice}) => {
                     </div>
                     <div className="form-group">
                         <Button size="lg" className="btn-block" type="submit" color="primary">
-                            {loading ? <Spinner size="sm" color="light"/> : "SIMPAN" }
+                            {loading ? <Spinner size="sm" color="light"/> : "SIMPAN"}
                         </Button>
                     </div>
                 </form>

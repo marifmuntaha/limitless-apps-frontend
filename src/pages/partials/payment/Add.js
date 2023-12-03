@@ -3,9 +3,8 @@ import {Button, Col, Label, Modal, ModalBody, ModalHeader, Row, Spinner} from "r
 import {Icon, RSelect, toastSuccess} from "../../../components";
 import DatePicker from "react-datepicker";
 import {setDateForPicker} from "../../../utils/Utils";
-import axios from "axios";
-import HandleError from "../../auth/handleError";
 import moment from "moment";
+import {actionType, Dispatch} from "../../../reducer";
 
 const Add = ({open, setOpen, datatable, invoice, ...params}) => {
     const [loading, setLoading] = useState(false);
@@ -19,81 +18,39 @@ const Add = ({open, setOpen, datatable, invoice, ...params}) => {
     const [totalPayment, setTotalPayment] = useState(0);
     const [methodSelected, setMethodSelected] = useState([]);
     const [methodOption, setMethodOption] = useState([]);
-    const handleMethodOption = async () => {
-        await axios.get(`${process.env.REACT_APP_API_ENDPOINT}/account`, {
-            params: {
-                type: 'select'
-            },
-            headers: {
-                Accept: 'application/json',
-                Authorization: 'Bearer ' + localStorage.getItem('token')
-            }
-        }).then(resp => {
-            setMethodOption(resp.data.result);
-        }).catch(error => HandleError(error));
-    }
     const handleFormInput = (e) => {
         setFormDataPayment({...formDataPayment, [e.target.name]: e.target.value});
     }
-    const handlePaymentsData = async () => {
-        await axios.get(`${process.env.REACT_APP_API_ENDPOINT}/payment`, {
-            params: {
-                invoice: invoice.id || ''
-            },
-            headers: {
-                Accept: 'application/json',
-                Authorization: 'Bearer ' + localStorage.getItem('token')
-            }
-        }).then(resp => {
-            let total = 0;
-            setTotalPayment(() => {
-                resp.data.result.forEach((payment) => {
-                    total += parseInt(payment.amount);
-                });
-                return total
-            })
-        }).catch(error => HandleError(error));
-    }
     const handleFormSubmit = async (e) => {
         e.preventDefault();
-        setLoading(true);
-        await axios.post(`${process.env.REACT_APP_API_ENDPOINT}/payment`, formDataPayment).then(resp => {
-            toastSuccess(resp.data.message);
-            parseInt(invoice.amount) === totalPayment + formDataPayment.amount &&
-            axios.put(`${process.env.REACT_APP_API_ENDPOINT}/invoice/${invoice.id}`, {
-                desc: invoice.desc,
-                price: invoice.price,
-                discount: invoice.discount,
-                fees: invoice.fees,
-                amount: invoice.amount,
-                status: '1',
-                due: invoice.due,
-            }).then(resp => {
-                toastSuccess('Terimakasih, tagihan telah lunas');
-                toggle();
-                datatable(true);
-                params.setReload && params.setReload(true);
-                setLoading(false);
-            }).catch(error => {
-                HandleError(error);
-                setLoading(false);
-            });
-            axios.post(`${process.env.REACT_APP_API_ENDPOINT}/cashflow`, {
-                payment: resp.data.result.id,
-                type: '1',
-                desc: resp.data.result.invoices.desc + '#' + resp.data.result.invoices.members.name,
-                amount: resp.data.result.amount,
-                method: resp.data.result.method,
+        Dispatch(actionType.PAYMENT_STORE, {
+            formData: formDataPayment,
+            setLoading: setLoading,
+            toggle: toggle
+        }).then(resp => {
+            parseInt(invoice.amount) === totalPayment + formDataPayment.amount && Dispatch(actionType.INVOICE_UPDATE,{
+                formData: {
+                    id: invoice.id,
+                    status: '1',
+                },
+                setLoading: setLoading,
+                setReload: datatable,
+                toggle: toggle
             }).then(() => {
-                setLoading(false);
-            }).catch(error => {
-                HandleError(error);
-                setLoading(false);
+                toastSuccess('Terimakasih, tagihan telah lunas');
+                params.setReload && params.setReload(true);
             });
-        }).catch(error => {
-            HandleError(error);
-            setLoading(false);
-        });
+            Dispatch(actionType.CASHFLOW_STORE, {
+                formData: {
+                    payment: resp.id,
+                    type: '1',
+                    desc: resp.invoices.desc + '#' + resp.invoices.members.name,
+                    amount: resp.amount,
+                    method: resp.method,
+                },
+                setLoading: setLoading
+            })
+        })
     }
     const toggle = () => {
         setOpen({
@@ -109,9 +66,18 @@ const Add = ({open, setOpen, datatable, invoice, ...params}) => {
             method: '',
             at: moment().format('YYYY-MM-DD')
         });
-        handleMethodOption().then();
-        handlePaymentsData().then();
-        // eslint-disable-next-line
+        Dispatch(actionType.ACCOUNT_GET,
+            {setData: setMethodOption},
+            {type: "select"}).then();
+        Dispatch(actionType.PAYMENT_GET, {}, {invoice: invoice.id}).then(resp => {
+            let total = 0;
+            setTotalPayment(() => {
+                resp.forEach((payment) => {
+                    total += parseInt(payment.amount);
+                });
+                return total
+            })
+        })
     }, [invoice]);
 
     return <>
