@@ -101,7 +101,7 @@ const ReactDataTable = ({data, columns, pagination, actions, className, selectab
         let defaultData = tableData;
         if (searchText !== "") {
             defaultData = data.filter((item) => {
-                return item.name.toLowerCase().includes(searchText.toLowerCase());
+                return item?.name?.toLowerCase().includes(searchText.toLowerCase());
             });
             setTableData(defaultData);
         } else {

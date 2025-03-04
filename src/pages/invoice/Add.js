@@ -54,10 +54,10 @@ const Add = ({open, setOpen, datatable}) => {
     useEffect(() => {
         Dispatch(actionType.MEMBER_GET, {setData: setMemberOption}, {type: 'select'}).then(resp => {
             setFormData({
-                ...formData, member: member.id
+                ...formData, member: member?.id
             });
             setMemberSelected(() => resp.filter((item) => {
-                return item.value === member.id
+                return item.value === member?.id
             }));
         });
         // eslint-disable-next-line

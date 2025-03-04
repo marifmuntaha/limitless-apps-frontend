@@ -14,12 +14,14 @@ import {
 import {Badge, Button, ButtonGroup, Col, Row, Spinner} from "reactstrap";
 import axios from "axios";
 import HandleError from "../auth/handleError";
-import {Currency} from "../../utils/Utils";
+import {Currency, monthNames, setDateForPicker} from "../../utils/Utils";
 import {useNavigate} from "react-router-dom";
 import Pay from "../partials/payment/Add"
 import Add from "./Add";
 import {ToastContainer} from "react-toastify";
 import Edit from "./Edit";
+import {actionType, Dispatch} from "../../reducer";
+import moment from "moment/moment";
 
 const Invoice = () => {
     const [sm, updateSm] = useState(false);
@@ -36,6 +38,7 @@ const Invoice = () => {
     });
     const [invoices, setInvoices] = useState([]);
     const [invoice, setInvoice] = useState([]);
+    const [members, setMembers] = useState([]);
     const yearOption = [
         {value: '', label: 'Semua'},
         {value: '2023', label: '2023'},
@@ -81,12 +84,12 @@ const Invoice = () => {
         },
         {
             name: "Nama Pelanggan",
-            selector: (row) => row.member.name,
+            selector: (row) => row.member?.name,
             sortable: false,
         },
         {
             name: "Alamat",
-            selector: (row) => row.member.address,
+            selector: (row) => row.member?.address,
             sortable: false,
             hide: 370,
         },
@@ -301,12 +304,36 @@ const Invoice = () => {
             });
         });
     }
+    const handleGenerateInvoice = () => {
+        members.map((member) => {
+            let due = moment().toDate();
+            Dispatch(actionType.INVOICE_STORE, {
+                formData: {
+                    member: member.id,
+                    product: member.order[0]?.product?.id,
+                    desc: member.order[0]?.product?.name + '-' + monthNames[due.getMonth()] + due.getFullYear(),
+                    price: member.order[0]?.price,
+                    amount: member.order[0]?.price,
+                    status: '1',
+                    due: setDateForPicker(due),
+                },
+                setLoading: setLoading,
+            }).then()
+        })
+    }
 
     useEffect(() => {
         reload &&
         handleInvoiceData();
         // eslint-disable-next-line
     }, [reload]);
+
+    useEffect(() => {
+        Dispatch(actionType.MEMBER_GET,
+            {setData: setMembers},
+            {order: "DESC"}
+        ).then(() => setReload(false));
+    }, []);
 
     return <>
         <Head title="Tagihan"/>
@@ -346,6 +373,15 @@ const Invoice = () => {
                                         <Button color="secondary">
                                             <Icon name="plus"></Icon>
                                             <span>Tambah</span>
+                                        </Button>
+                                    </li>
+                                    <li
+                                        className="nk-block-tools-opt"
+                                        onClick={() => handleGenerateInvoice()}
+                                    >
+                                        <Button color="danger">
+                                            <Icon name="reload"></Icon>
+                                            <span>GENERATE</span>
                                         </Button>
                                     </li>
                                 </ul>
